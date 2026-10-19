@@ -81,7 +81,7 @@
     box-shadow: 0 2px 4px #2563eb44;
   }
 
-  .grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: flex-start; }
+  .grid { display: flex; flex-direction: column; gap: 20px; }
   .panel {
     background: var(--panel); border: 1px solid var(--border);
     border-radius: 14px; padding: 22px;
@@ -704,6 +704,8 @@
   <!-- ============ 加油券包 ============ -->
   <div class="section active" id="sec-gas">
     <div class="grid">
+      <div class="kpis" id="gas-kpis"></div>
+
       <div class="panel">
         <h3>参数设置</h3>
 
@@ -794,14 +796,11 @@
         </div>
       </div>
 
-      <div>
-        <div class="kpis" id="gas-kpis"></div>
-        <div class="charts">
-          <div class="chart-box"><div class="chart-title">成本结构占比</div><canvas id="gas-cost-pie"></canvas></div>
-          <div class="chart-box"><div class="chart-title">销量 vs 利润敏感性</div><canvas id="gas-sens"></canvas></div>
-          <div class="chart-box"><div class="chart-title">利润率 vs 售价曲线</div><canvas id="gas-price-margin"></canvas></div>
-          <div class="chart-box"><div class="chart-title">盈亏平衡分析</div><canvas id="gas-be"></canvas></div>
-        </div>
+      <div class="charts">
+        <div class="chart-box"><div class="chart-title">成本结构占比</div><canvas id="gas-cost-pie"></canvas></div>
+        <div class="chart-box"><div class="chart-title">销量 vs 利润敏感性</div><canvas id="gas-sens"></canvas></div>
+        <div class="chart-box"><div class="chart-title">利润率 vs 售价曲线</div><canvas id="gas-price-margin"></canvas></div>
+        <div class="chart-box"><div class="chart-title">盈亏平衡分析</div><canvas id="gas-be"></canvas></div>
       </div>
     </div>
 
@@ -864,6 +863,8 @@
   <!-- ============ 充电服务 ============ -->
   <div class="section" id="sec-charge">
     <div class="grid">
+      <div class="kpis" id="chg-kpis"></div>
+
       <div class="panel">
         <h3>参数设置</h3>
 
@@ -942,14 +943,11 @@
         </div>
       </div>
 
-      <div>
-        <div class="kpis" id="chg-kpis"></div>
-        <div class="charts">
-          <div class="chart-box"><div class="chart-title">成本结构占比</div><canvas id="chg-cost-pie"></canvas></div>
-          <div class="chart-box"><div class="chart-title">充电量 vs 利润敏感性</div><canvas id="chg-sens"></canvas></div>
-          <div class="chart-box"><div class="chart-title">服务费 vs 利润曲线</div><canvas id="chg-price-margin"></canvas></div>
-          <div class="chart-box"><div class="chart-title">赔付率影响分析</div><canvas id="chg-comp"></canvas></div>
-        </div>
+      <div class="charts">
+        <div class="chart-box"><div class="chart-title">成本结构占比</div><canvas id="chg-cost-pie"></canvas></div>
+        <div class="chart-box"><div class="chart-title">充电量 vs 利润敏感性</div><canvas id="chg-sens"></canvas></div>
+        <div class="chart-box"><div class="chart-title">服务费 vs 利润曲线</div><canvas id="chg-price-margin"></canvas></div>
+        <div class="chart-box"><div class="chart-title">赔付率影响分析</div><canvas id="chg-comp"></canvas></div>
       </div>
     </div>
 
@@ -965,6 +963,8 @@
   <!-- ============ 租车业务 ============ -->
   <div class="section" id="sec-rent">
     <div class="grid">
+      <div class="kpis" id="rent-kpis"></div>
+
       <div class="panel">
         <h3>参数设置</h3>
 
@@ -1041,14 +1041,11 @@
         </div>
       </div>
 
-      <div>
-        <div class="kpis" id="rent-kpis"></div>
-        <div class="charts">
-          <div class="chart-box"><div class="chart-title">成本结构占比</div><canvas id="rent-cost-pie"></canvas></div>
-          <div class="chart-box"><div class="chart-title">订单量 vs 利润敏感性</div><canvas id="rent-sens"></canvas></div>
-          <div class="chart-box"><div class="chart-title">出租率 vs 利润曲线</div><canvas id="rent-util-margin"></canvas></div>
-          <div class="chart-box"><div class="chart-title">客诉赔付影响</div><canvas id="rent-comp"></canvas></div>
-        </div>
+      <div class="charts">
+        <div class="chart-box"><div class="chart-title">成本结构占比</div><canvas id="rent-cost-pie"></canvas></div>
+        <div class="chart-box"><div class="chart-title">订单量 vs 利润敏感性</div><canvas id="rent-sens"></canvas></div>
+        <div class="chart-box"><div class="chart-title">出租率 vs 利润曲线</div><canvas id="rent-util-margin"></canvas></div>
+        <div class="chart-box"><div class="chart-title">客诉赔付影响</div><canvas id="rent-comp"></canvas></div>
       </div>
     </div>
 
@@ -2324,4 +2321,3 @@ computeAll();
 </script>
 </body>
 </html>
-
