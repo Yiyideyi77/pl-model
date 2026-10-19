@@ -1,0 +1,2326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>损益模型测试系统 · 大车服</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f6f8fb;
+    --panel: #ffffff;
+    --panel-2: #f1f5f9;
+    --border: #e2e8f0;
+    --border-strong: #cbd5e1;
+    --text: #0f172a;
+    --muted: #64748b;
+    --accent: #2563eb;
+    --accent-2: #7c3aed;
+    --green: #10b981;
+    --red: #ef4444;
+    --yellow: #f59e0b;
+    --orange: #f97316;
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06);
+    --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+    --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.05);
+  }
+  body {
+    font-family: -apple-system, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+    background:
+      radial-gradient(1200px 600px at 0% -10%, #dbeafe55, transparent),
+      radial-gradient(900px 500px at 100% 0%, #ede9fe55, transparent),
+      linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 28px;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container { max-width: 1400px; margin: 0 auto; }
+  .header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 24px; padding: 18px 22px;
+    background: var(--panel); border-radius: 14px;
+    box-shadow: var(--shadow-sm); border: 1px solid var(--border);
+  }
+  .title { font-size: 20px; font-weight: 700; letter-spacing: 0.3px; color: var(--text); }
+  .title .sub { color: var(--muted); font-size: 13px; font-weight: 400; margin-left: 12px; }
+  .scenario-bar { display: flex; gap: 10px; align-items: center; }
+  .scenario-bar select, .scenario-bar input, .scenario-bar button {
+    background: var(--panel); color: var(--text); border: 1px solid var(--border);
+    padding: 8px 12px; border-radius: 8px; font-size: 13px; cursor: pointer;
+    box-shadow: var(--shadow-sm); transition: all .2s;
+  }
+  .scenario-bar select:hover, .scenario-bar button:hover {
+    border-color: var(--accent); transform: translateY(-1px);
+  }
+  .scenario-bar button.primary {
+    background: var(--accent); color: #ffffff; border: none; font-weight: 600;
+    box-shadow: 0 2px 4px #2563eb33;
+  }
+  .scenario-bar button.primary:hover { background: #1d4ed8; }
+  .scenario-bar button.ghost { background: transparent; }
+
+  .tabs {
+    display: flex; gap: 6px; margin-bottom: 20px;
+    padding: 6px;
+    background: var(--panel); border-radius: 12px;
+    box-shadow: var(--shadow-sm); border: 1px solid var(--border);
+  }
+  .tab {
+    padding: 10px 18px; cursor: pointer; border-radius: 8px;
+    color: var(--muted); font-weight: 500; font-size: 13px;
+    transition: all .2s ease;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .tab:hover { color: var(--text); background: var(--panel-2); }
+  .tab.active {
+    color: #ffffff; background: var(--accent);
+    box-shadow: 0 2px 4px #2563eb44;
+  }
+
+  .grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: flex-start; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 14px; padding: 22px;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow .25s ease;
+  }
+  .panel:hover { box-shadow: var(--shadow-md); }
+  .panel h3 {
+    font-size: 14px; font-weight: 600; margin-bottom: 18px;
+    display: flex; align-items: center; gap: 10px;
+    color: var(--text);
+  }
+  .panel h3::before {
+    content: ''; width: 4px; height: 18px;
+    background: linear-gradient(180deg, var(--accent) 0%, var(--accent-2) 100%);
+    border-radius: 2px;
+  }
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: flex; justify-content: space-between;
+    font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 500;
+  }
+  .field label .val { color: var(--accent); font-weight: 700; font-size: 13px; }
+  .field input[type=range] {
+    width: 100%; height: 6px; background: var(--panel-2);
+    border-radius: 3px; outline: none; -webkit-appearance: none;
+  }
+  .field input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px;
+    background: var(--accent); border-radius: 50%; cursor: pointer;
+    box-shadow: 0 0 0 4px #2563eb22, 0 2px 4px rgba(0,0,0,0.1);
+  }
+  .field input[type=number], .field select {
+    width: 100%; background: #ffffff; color: var(--text);
+    border: 1px solid var(--border); padding: 9px 12px; border-radius: 8px; font-size: 13px;
+    transition: all .2s; font-family: inherit;
+  }
+  .field input[type=number]:focus, .field select:focus {
+    border-color: var(--accent); outline: none;
+    box-shadow: 0 0 0 3px #2563eb1a;
+  }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  .kpi {
+    background: var(--panel);
+    border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px;
+    position: relative; overflow: hidden;
+    box-shadow: var(--shadow-sm); transition: all .25s ease;
+  }
+  .kpi:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+  .kpi::before {
+    content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+    background: linear-gradient(180deg, var(--accent) 0%, #60a5fa 100%);
+    border-radius: 0 2px 2px 0;
+  }
+  .kpi .label { font-size: 11px; color: var(--muted); margin-bottom: 8px; font-weight: 500; letter-spacing: .3px; }
+  .kpi .value { font-size: 22px; font-weight: 700; font-family: "SF Mono", Menlo, monospace; }
+  .kpi .hint { font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .kpi.green::before { background: linear-gradient(180deg, var(--green) 0%, #6ee7b7 100%); }
+  .kpi.red::before { background: linear-gradient(180deg, var(--red) 0%, #fca5a5 100%); }
+  .kpi.yellow::before { background: linear-gradient(180deg, var(--yellow) 0%, #fcd34d 100%); }
+  .kpi.purple::before { background: linear-gradient(180deg, var(--accent-2) 0%, #c4b5fd 100%); }
+
+  .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .chart-box {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px;
+    box-shadow: var(--shadow-sm); transition: box-shadow .25s ease;
+  }
+  .chart-box:hover { box-shadow: var(--shadow-md); }
+  .chart-box .chart-title {
+    font-size: 13px; font-weight: 600; margin-bottom: 12px; color: var(--text);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .chart-box .chart-title::before {
+    content: ''; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent); display: inline-block;
+  }
+  .chart-box canvas { max-height: 280px; }
+
+  .compare-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .compare-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px;
+    position: relative; box-shadow: var(--shadow-sm); transition: all .25s ease;
+  }
+  .compare-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+  .compare-card .sc-name { font-size: 14px; font-weight: 600; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .compare-card .sc-row { display: flex; justify-content: space-between; padding: 7px 0; font-size: 12px; border-bottom: 1px dashed var(--border); }
+  .compare-card .sc-row:last-child { border-bottom: none; }
+  .compare-card .sc-row .k { color: var(--muted); }
+  .compare-card .sc-row .v { font-weight: 600; font-family: "SF Mono", Menlo, monospace; }
+  .compare-card button.del {
+    position: absolute; top: 10px; right: 12px; background: #fef2f2;
+    border: 1px solid #fecaca; color: var(--red); cursor: pointer; font-size: 14px;
+    width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+  }
+  .compare-card button.del:hover { background: var(--red); color: #fff; }
+  .positive { color: var(--green); font-weight: 600; }
+  .negative { color: var(--red); font-weight: 600; }
+  .neutral { color: var(--yellow); font-weight: 600; }
+
+  .hist-list { max-height: 420px; overflow-y: auto; }
+  .hist-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 16px; background: var(--panel-2); border-radius: 10px; margin-bottom: 8px;
+    border: 1px solid var(--border); transition: all .2s;
+  }
+  .hist-item:hover { border-color: var(--accent); box-shadow: var(--shadow-sm); }
+  .hist-item .h-info { flex: 1; }
+  .hist-item .h-name { font-size: 13px; font-weight: 600; }
+  .hist-item .h-meta { font-size: 11px; color: var(--muted); margin-top: 4px; font-family: "SF Mono", Menlo, monospace; }
+  .hist-item .h-actions { display: flex; gap: 6px; }
+  .hist-item button {
+    background: var(--panel); color: var(--text); border: 1px solid var(--border);
+    padding: 6px 12px; border-radius: 7px; cursor: pointer; font-size: 12px;
+    transition: all .15s; font-weight: 500;
+  }
+  .hist-item button:hover { border-color: var(--accent); }
+  .hist-item button.load { background: var(--accent); color: #ffffff; border: none; font-weight: 600; }
+  .hist-item button.load:hover { background: #1d4ed8; }
+  .hist-item button.del { color: var(--red); }
+  .hist-item button.del:hover { background: #fef2f2; border-color: var(--red); }
+  .empty { text-align: center; color: var(--muted); padding: 40px; font-size: 13px; }
+
+  .toolbar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .toolbar button {
+    background: var(--panel); color: var(--text); border: 1px solid var(--border);
+    padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 12px;
+    box-shadow: var(--shadow-sm); transition: all .15s; font-weight: 500;
+  }
+  .toolbar button:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .toolbar button.primary { background: var(--accent); color: #ffffff; border: none; font-weight: 600; box-shadow: 0 2px 4px #2563eb33; }
+  .toolbar button.primary:hover { background: #1d4ed8; }
+
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+  .badge.gas { background: #f9731618; color: var(--orange); }
+  .badge.charge { background: #10b98118; color: var(--green); }
+  .badge.rent { background: #7c3aed18; color: var(--accent-2); }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  .note {
+    background: #fffbeb; border-left: 4px solid var(--yellow);
+    padding: 12px 16px; border-radius: 8px; font-size: 12px; color: var(--text); margin-bottom: 16px;
+    border: 1px solid #fde68a; border-left-width: 4px;
+  }
+
+  input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  /* 公式面板 */
+  .formula-box {
+    background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
+    border: 1px solid #bfdbfe;
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 18px;
+    box-shadow: 0 2px 8px -2px #2563eb22;
+  }
+  .formula-box .f-title {
+    font-size: 11px; color: var(--accent); letter-spacing: 1px;
+    text-transform: uppercase; margin-bottom: 10px; font-weight: 700;
+  }
+  .formula-expr {
+    font-family: "SF Mono", "JetBrains Mono", Menlo, monospace;
+    font-size: 15px; color: var(--text); line-height: 1.8;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  }
+  .formula-expr .v {
+    color: var(--accent); font-weight: 700; padding: 3px 8px;
+    background: #dbeafe; border-radius: 6px;
+  }
+  .formula-expr .op { color: var(--muted); }
+  .formula-expr .eq { color: var(--green); font-weight: 700; }
+  .formula-expr .result {
+    display: inline-block; background: var(--accent); color: #ffffff;
+    padding: 4px 12px; border-radius: 8px; font-weight: 700; min-width: 60px; text-align: right;
+    box-shadow: 0 2px 4px #2563eb44;
+  }
+  .formula-sub {
+    font-size: 11px; color: var(--muted); margin-top: 10px;
+    font-family: "SF Mono", Menlo, monospace;
+  }
+  .formula-sub .ok { color: var(--green); font-weight: 600; }
+  .formula-sub .warn { color: var(--yellow); font-weight: 600; }
+
+  /* 定价模式切换 */
+  .price-mode {
+    display: flex; gap: 10px; align-items: center;
+    margin-bottom: 14px; padding: 10px 14px;
+    background: var(--panel-2); border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .price-mode label {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--muted); cursor: pointer;
+    transition: color .15s;
+  }
+  .price-mode label:hover { color: var(--text); }
+  .price-mode input[type=radio] { accent-color: var(--accent); }
+  .price-mode .mode-label { font-weight: 600; color: var(--text); margin-right: 6px; }
+
+  /* 数值输入样式（替换滑块） */
+  .num-input {
+    width: 100%; background: #ffffff; color: var(--text);
+    border: 1px solid var(--border); padding: 9px 12px; border-radius: 8px;
+    font-size: 13px; font-weight: 500; transition: all .2s;
+    font-family: "SF Mono", Menlo, monospace;
+  }
+  .num-input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px #2563eb18; }
+  .num-input:disabled { opacity: .5; cursor: not-allowed; background: var(--panel-2); }
+  .num-input.pct { padding-right: 28px; }
+  .field.with-suffix { position: relative; }
+  .field.with-suffix::after {
+    content: attr(data-suffix); position: absolute; right: 12px; top: 29px;
+    color: var(--muted); font-size: 12px; pointer-events: none; font-weight: 500;
+  }
+  .field-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .field-group-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .field .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .field .hint.accent { color: var(--accent); font-weight: 600; }
+  .section-divider {
+    font-size: 11px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 1px; margin: 20px 0 12px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--border); font-weight: 600;
+  }
+
+  /* 价格档位选择器 */
+  .tier-grid {
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;
+    margin-bottom: 10px;
+  }
+  .tier-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: all .2s ease;
+    position: relative;
+    user-select: none;
+    box-shadow: var(--shadow-sm);
+  }
+  .tier-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  .tier-card.active {
+    background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px #2563eb33, var(--shadow-md);
+  }
+  .tier-card.active::after {
+    content: '✓';
+    position: absolute; top: 3px; right: 6px;
+    color: var(--accent); font-size: 11px; font-weight: 700;
+  }
+  .tier-card .t-name {
+    font-size: 14px; font-weight: 700; color: var(--text);
+    margin-bottom: 6px; letter-spacing: .3px;
+  }
+  .tier-card .t-cost {
+    font-size: 10px; color: var(--muted); line-height: 1.6;
+  }
+  .tier-card .t-price {
+    font-size: 11px; color: var(--accent); margin-top: 5px;
+    font-family: "SF Mono", Menlo, monospace; font-weight: 600;
+  }
+
+  /* ============ 方案测算模块 ============ */
+  .scenario-intro {
+    background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 18px;
+    font-size: 12px; color: var(--text);
+    line-height: 1.8;
+  }
+  .scenario-intro b { color: var(--accent); font-weight: 700; }
+
+  .biz-scenario {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 14px; padding: 22px; margin-top: 20px;
+    box-shadow: var(--shadow-sm);
+  }
+  .biz-scenario h3 {
+    font-size: 15px; font-weight: 600; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .biz-scenario h3 .sub {
+    font-size: 11px; color: var(--muted); font-weight: 400;
+  }
+
+  /* 可调控区间总览条 */
+  .range-bar {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    display: flex; flex-wrap: wrap; gap: 20px;
+    font-size: 12px;
+  }
+  .range-item { display: flex; align-items: baseline; gap: 6px; }
+  .range-item .r-label { color: var(--muted); font-weight: 500; }
+  .range-item .r-value {
+    font-family: "SF Mono", Menlo, monospace;
+    font-weight: 700; font-size: 14px; color: var(--text);
+  }
+  .range-item .r-unit { color: var(--muted); font-size: 11px; margin-left: 2px; }
+
+  /* 速览卡片（保本/稳健/目标三档） */
+  .speed-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
+  .speed-card {
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    overflow: hidden;
+    transition: all .25s ease;
+    box-shadow: var(--shadow-sm);
+  }
+  .speed-card::before {
+    content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+    border-radius: 0 2px 2px 0;
+  }
+  .speed-card.breakeven::before { background: linear-gradient(180deg, var(--yellow) 0%, #fcd34d 100%); }
+  .speed-card.stable::before { background: linear-gradient(180deg, var(--accent) 0%, #60a5fa 100%); }
+  .speed-card.target::before { background: linear-gradient(180deg, var(--green) 0%, #6ee7b7 100%); }
+  .speed-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+
+  .speed-card .s-title {
+    font-size: 12px; color: var(--muted); font-weight: 600;
+    margin-bottom: 10px; display: flex; justify-content: space-between;
+  }
+  .speed-card .s-title .s-tag {
+    font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600;
+  }
+  .speed-card.breakeven .s-tag { background: #f59e0b18; color: var(--yellow); }
+  .speed-card.stable .s-tag { background: #2563eb18; color: var(--accent); }
+  .speed-card.target .s-tag { background: #10b98118; color: var(--green); }
+
+  .speed-card .s-main {
+    display: flex; align-items: baseline; gap: 6px; margin-bottom: 12px;
+  }
+  .speed-card .s-price {
+    font-size: 28px; font-weight: 700; color: var(--text);
+    font-family: "SF Mono", Menlo, monospace;
+  }
+  .speed-card .s-unit { color: var(--muted); font-size: 12px; }
+  .speed-card .s-metrics {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 5px 14px;
+    font-size: 11px; padding-top: 10px; border-top: 1px solid var(--border);
+  }
+  .speed-card .s-metrics .m-row {
+    display: flex; justify-content: space-between;
+  }
+  .speed-card .s-metrics .m-k { color: var(--muted); }
+  .speed-card .s-metrics .m-v { font-weight: 600; font-family: "SF Mono", Menlo, monospace; }
+
+  /* 场景矩阵表格 */
+  .scenario-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+  table.scenario-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 12px; font-family: "SF Mono", Menlo, monospace;
+  }
+  table.scenario-table th {
+    background: var(--panel-2);
+    padding: 10px 12px;
+    text-align: right;
+    font-weight: 600;
+    color: var(--muted);
+    border-bottom: 2px solid var(--border);
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  table.scenario-table th:first-child { text-align: left; }
+  table.scenario-table td {
+    padding: 9px 12px;
+    text-align: right;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  table.scenario-table td:first-child {
+    text-align: left; font-weight: 600; color: var(--text);
+  }
+  table.scenario-table tr:last-child td { border-bottom: none; }
+  table.scenario-table tr:hover td { background: #f1f5f9; }
+  table.scenario-table tr.band-loss td { background: #fef2f2; }
+  table.scenario-table tr.band-even td { background: #fffbeb; }
+  table.scenario-table tr.band-healthy td { background: #ecfdf5; }
+  table.scenario-table tr.band-excess td { background: #f5f3ff; }
+  table.scenario-table tr.band-loss td:first-child { border-left: 3px solid var(--red); }
+  table.scenario-table tr.band-even td:first-child { border-left: 3px solid var(--yellow); }
+  table.scenario-table tr.band-healthy td:first-child { border-left: 3px solid var(--green); }
+  table.scenario-table tr.band-excess td:first-child { border-left: 3px solid var(--accent-2); }
+  table.scenario-table tr.is-current td { outline: 2px solid var(--accent); outline-offset: -2px; }
+  table.scenario-table .cell-pos { color: var(--green); font-weight: 600; }
+  table.scenario-table .cell-neg { color: var(--red); font-weight: 600; }
+  table.scenario-table .cell-zero { color: var(--yellow); font-weight: 600; }
+
+  .range-legend {
+    display: flex; gap: 16px; margin-top: 12px; font-size: 11px; color: var(--muted);
+  }
+  .range-legend .lg-item { display: flex; align-items: center; gap: 6px; }
+  .range-legend .lg-dot { width: 12px; height: 12px; border-radius: 3px; }
+  .lg-dot.loss { background: var(--red); }
+  .lg-dot.even { background: var(--yellow); }
+  .lg-dot.healthy { background: var(--green); }
+  .lg-dot.excess { background: var(--accent-2); }
+
+  /* 当前档位指示器 */
+  .tier-indicator {
+    margin-left: auto;
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    padding: 5px 12px 5px 10px;
+    border-radius: 20px;
+    font-size: 11px; color: var(--muted);
+    font-weight: 500;
+  }
+  .tier-indicator.active {
+    border-color: var(--green);
+    color: var(--green);
+    background: #ecfdf5;
+  }
+  .tier-indicator .ti-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--muted);
+    display: inline-block;
+  }
+  .tier-indicator.active .ti-dot {
+    background: var(--green);
+    box-shadow: 0 0 0 3px #10b98133;
+    animation: ti-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes ti-pulse {
+    0%, 100% { box-shadow: 0 0 0 3px #10b98133; }
+    50% { box-shadow: 0 0 0 6px #10b98111; }
+  }
+  .tier-indicator .ti-name {
+    font-weight: 700; color: var(--text); font-family: "SF Mono", Menlo, monospace;
+  }
+
+  /* ============ 组合券模块 ============ */
+  .combo-module {
+    margin-top: 24px;
+    padding: 20px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  .combo-module .cm-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 16px; gap: 12px; flex-wrap: wrap;
+  }
+  .combo-module .cm-title {
+    font-size: 14px; font-weight: 600; color: var(--text);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .combo-module .cm-title::before {
+    content: ''; width: 4px; height: 18px;
+    background: linear-gradient(180deg, var(--accent-2) 0%, #c4b5fd 100%);
+    border-radius: 2px;
+  }
+  .combo-module .cm-sub {
+    font-size: 11px; color: var(--muted); font-weight: 400; margin-left: 4px;
+  }
+  .combo-toolbar {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  }
+  .combo-toolbar select {
+    background: var(--panel); color: var(--text); border: 1px solid var(--border);
+    padding: 7px 12px; border-radius: 8px; font-size: 12px; cursor: pointer;
+    font-family: "SF Mono", Menlo, monospace; box-shadow: var(--shadow-sm);
+  }
+  .combo-toolbar button {
+    background: var(--panel); color: var(--text); border: 1px solid var(--border);
+    padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size: 12px;
+    transition: all .15s; font-weight: 500; box-shadow: var(--shadow-sm);
+  }
+  .combo-toolbar button:hover { border-color: var(--accent); color: var(--accent); }
+  .combo-toolbar button.primary {
+    background: var(--accent); color: #ffffff; border: none; font-weight: 600;
+    box-shadow: 0 2px 4px #2563eb33;
+  }
+  .combo-toolbar button.primary:hover { background: #1d4ed8; }
+  .combo-toolbar .preset-label {
+    font-size: 11px; color: var(--muted); margin-right: 2px;
+  }
+  .combo-toolbar button.preset {
+    background: #f5f3ff; border-color: #c4b5fd55;
+  }
+  .combo-toolbar button.preset:hover {
+    background: #ede9fe; border-color: var(--accent-2); color: var(--accent-2);
+  }
+
+  .combo-items {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 12px; margin: 14px 0 18px;
+  }
+  .combo-item {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+    position: relative;
+    transition: all .2s;
+    box-shadow: var(--shadow-sm);
+  }
+  .combo-item:hover { border-color: var(--accent-2); box-shadow: var(--shadow-md); }
+  .combo-item .ci-head {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+  }
+  .combo-item .ci-name {
+    font-size: 13px; font-weight: 700;
+    font-family: "SF Mono", Menlo, monospace;
+  }
+  .combo-item .ci-remove {
+    background: #fef2f2; border: 1px solid #fecaca; color: var(--red);
+    cursor: pointer; font-size: 14px; line-height: 1; padding: 2px 5px;
+    border-radius: 5px; transition: all .15s;
+  }
+  .combo-item .ci-remove:hover { background: var(--red); color: #fff; }
+  .combo-item .ci-meta {
+    font-size: 10px; color: var(--muted); line-height: 1.6; margin-bottom: 10px;
+  }
+  .combo-item .ci-qty {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .combo-item .ci-qty button {
+    width: 24px; height: 24px; border-radius: 6px;
+    background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--border); cursor: pointer;
+    font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+  }
+  .combo-item .ci-qty button:hover { border-color: var(--accent); color: var(--accent); }
+  .combo-item .ci-qty input {
+    width: 44px; text-align: center;
+    background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--border); padding: 4px; border-radius: 6px;
+    font-family: "SF Mono", Menlo, monospace; font-size: 12px; font-weight: 600;
+  }
+  .combo-item .ci-qty span { font-size: 10px; color: var(--muted); }
+
+  .combo-summary {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px; margin-bottom: 16px;
+  }
+  .cs-item {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+    box-shadow: var(--shadow-sm);
+  }
+  .cs-item .cs-label { font-size: 10px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+  .cs-item .cs-value {
+    font-size: 18px; font-weight: 700; color: var(--text);
+    font-family: "SF Mono", Menlo, monospace;
+  }
+  .cs-item .cs-unit { font-size: 11px; color: var(--muted); margin-left: 3px; }
+  .cs-item.accent { border-color: var(--accent); background: #eff6ff; }
+  .cs-item.accent .cs-value { color: var(--accent); }
+  .cs-item.purple { border-color: var(--accent-2); background: #f5f3ff; }
+  .cs-item.purple .cs-value { color: var(--accent-2); }
+  .cs-item.green { border-color: var(--green); background: #ecfdf5; }
+  .cs-item.green .cs-value { color: var(--green); }
+
+  .combo-mode {
+    display: flex; gap: 12px; align-items: center;
+    padding: 10px 14px; background: var(--panel);
+    border-radius: 10px; margin-bottom: 14px;
+    font-size: 12px; border: 1px solid var(--border);
+  }
+  .combo-mode label {
+    display: flex; align-items: center; gap: 6px;
+    color: var(--muted); cursor: pointer;
+  }
+  .combo-mode input[type=radio] { accent-color: var(--accent-2); }
+  .combo-mode input[type=number] {
+    width: 100px; background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--border); padding: 5px 10px; border-radius: 7px;
+    font-family: "SF Mono", Menlo, monospace; font-size: 12px;
+  }
+
+  .combo-empty {
+    text-align: center; padding: 28px;
+    color: var(--muted); font-size: 12px;
+    border: 2px dashed var(--border); border-radius: 12px;
+    background: var(--panel);
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="title">损益模型测试系统<span class="sub">大车服 · 加油 / 充电 / 租车 多业务线测算</span></div>
+    <div class="scenario-bar">
+      <input id="scenarioName" placeholder="场景名称（如：M5保守版）" style="width:180px">
+      <button class="primary" onclick="saveScenario()">保存当前场景</button>
+      <button onclick="resetParams()">重置默认</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="gas">⛽ 加油券包</div>
+    <div class="tab" data-tab="charge">🔌 充电服务</div>
+    <div class="tab" data-tab="rent">🚗 租车业务</div>
+    <div class="tab" data-tab="compare">📊 场景对比</div>
+    <div class="tab" data-tab="history">📁 历史记录</div>
+  </div>
+
+  <!-- ============ 加油券包 ============ -->
+  <div class="section active" id="sec-gas">
+    <div class="grid">
+      <div class="panel">
+        <h3>参数设置</h3>
+
+        <div class="formula-box">
+          <div class="f-title">定价公式（实时联动）</div>
+          <div class="formula-expr" id="gas.formula">
+            <span class="op">P =</span>
+            <span class="v" id="gas.f.cost">43</span>
+            <span class="op">÷ ( 1 −</span>
+            <span class="v" id="gas.f.plat">3%</span>
+            <span class="op">−</span>
+            <span class="v" id="gas.f.ad">15%</span>
+            <span class="op">−</span>
+            <span class="v" id="gas.f.margin">8%</span>
+            <span class="op">) =</span>
+            <span class="result" id="gas.f.result">58.11 元</span>
+          </div>
+          <div class="formula-sub" id="gas.f.sub">
+            分母 = <span class="ok">0.74</span> · 当前售价偏差：<span class="warn">待计算</span>
+          </div>
+        </div>
+
+        <div class="price-mode">
+          <span class="mode-label">定价模式：</span>
+          <label><input type="radio" name="gas.mode" value="formula" checked> 公式联动（自动算售价）</label>
+          <label><input type="radio" name="gas.mode" value="manual"> 手动售价（反推利润率）</label>
+        </div>
+
+        <div class="section-divider">价格档位（点击快速填入）</div>
+        <div class="tier-grid" id="gas-tiers">
+          <!-- 由 JS 渲染 -->
+        </div>
+
+        <div class="section-divider">成本参数（代入公式）</div>
+        <div class="field-group-3">
+          <div class="field with-suffix" data-suffix="元">
+            <label>成本价</label>
+            <input type="number" class="num-input pct" id="gas.cost" value="43" min="0" step="0.1">
+            <div class="hint">如 200减50=43</div>
+          </div>
+          <div class="field with-suffix" data-suffix="%">
+            <label>平台费率</label>
+            <input type="number" class="num-input pct" id="gas.platform" value="1" min="0" max="100" step="0.1">
+          </div>
+          <div class="field with-suffix" data-suffix="%">
+            <label>千川投流占比</label>
+            <input type="number" class="num-input pct" id="gas.ad" value="15" min="0" max="100" step="0.5">
+            <div class="hint">自然流量为主≤15%</div>
+          </div>
+        </div>
+        <div class="field-group">
+          <div class="field with-suffix" data-suffix="%">
+            <label>目标净利润率</label>
+            <input type="number" class="num-input pct" id="gas.margin" value="8" min="0" max="100" step="0.5">
+            <div class="hint accent" id="gas.margin.hint">公式驱动售价</div>
+          </div>
+          <div class="field with-suffix" data-suffix="元">
+            <label>售价 / 实际定价</label>
+            <input type="number" class="num-input pct" id="gas.price" value="58.11" min="0" step="0.1">
+            <div class="hint" id="gas.price.hint">公式自动填入</div>
+          </div>
+        </div>
+
+        <div class="section-divider">运营参数</div>
+        <div class="field-group">
+          <div class="field with-suffix" data-suffix="元">
+            <label>券面值</label>
+            <input type="number" class="num-input pct" id="gas.face" value="200" min="1">
+          </div>
+          <div class="field with-suffix" data-suffix="张">
+            <label>月销量</label>
+            <input type="number" class="num-input pct" id="gas.volume" value="10000" min="0" step="100">
+          </div>
+        </div>
+        <div class="field-group-3">
+          <div class="field with-suffix" data-suffix="%">
+            <label>核销率</label>
+            <input type="number" class="num-input pct" id="gas.redeem" value="70" min="0" max="100" step="0.5">
+          </div>
+          <div class="field with-suffix" data-suffix="x">
+            <label>千川 ROI</label>
+            <input type="number" class="num-input pct" id="gas.roi" value="2" min="0" step="0.1">
+          </div>
+          <div class="field with-suffix" data-suffix="万">
+            <label>月固定成本</label>
+            <input type="number" class="num-input pct" id="gas.fixed" value="5" min="0" step="0.1">
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="kpis" id="gas-kpis"></div>
+        <div class="charts">
+          <div class="chart-box"><div class="chart-title">成本结构占比</div><canvas id="gas-cost-pie"></canvas></div>
+          <div class="chart-box"><div class="chart-title">销量 vs 利润敏感性</div><canvas id="gas-sens"></canvas></div>
+          <div class="chart-box"><div class="chart-title">利润率 vs 售价曲线</div><canvas id="gas-price-margin"></canvas></div>
+          <div class="chart-box"><div class="chart-title">盈亏平衡分析</div><canvas id="gas-be"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 方案测算面板 -->
+    <div class="biz-scenario" id="gas-scenario">
+      <h3>
+        📐 方案测算与可调控区间
+        <span class="sub">基于当前参数反推多档利润率方案</span>
+        <span class="tier-indicator" id="gas-current-tier">
+          <span class="ti-dot"></span>
+          <span class="ti-text">未选择档位</span>
+        </span>
+      </h3>
+      <div class="range-bar" id="gas-range"></div>
+      <div class="speed-cards" id="gas-speed"></div>
+      <div class="scenario-table-wrap" id="gas-matrix"></div>
+      <div class="range-legend">
+        <div class="lg-item"><span class="lg-dot loss"></span> 亏损区 (&lt;0%)</div>
+        <div class="lg-item"><span class="lg-dot even"></span> 保本边缘 (0~3%)</div>
+        <div class="lg-item"><span class="lg-dot healthy"></span> 健康区 (3~8%)</div>
+        <div class="lg-item"><span class="lg-dot excess"></span> 超额利润 (&gt;8%)</div>
+      </div>
+
+      <!-- 组合券售卖成本计算 -->
+      <div class="combo-module">
+        <div class="cm-header">
+          <div class="cm-title">
+            组合券售卖成本计算
+            <span class="cm-sub">多张优惠券打包售卖，汇总成本与建议定价</span>
+          </div>
+          <div class="combo-toolbar">
+            <select id="combo-add-select">
+              <!-- JS 填入档位选项 -->
+            </select>
+            <button class="primary" id="combo-add-btn">+ 添加</button>
+            <span class="preset-label">预设：</span>
+            <button class="preset" data-preset="30x2">200-30 × 2</button>
+            <button class="preset" data-preset="30+50">200-30 + 200-50</button>
+            <button class="preset" data-preset="20x3">200-20 × 3</button>
+            <button class="preset" data-preset="10x5">200-10 × 5</button>
+            <button id="combo-clear">清空</button>
+          </div>
+        </div>
+
+        <div class="combo-items" id="combo-items"></div>
+        <div class="combo-summary" id="combo-summary"></div>
+
+        <div class="combo-mode">
+          <span style="color:var(--text);font-weight:600">定价模式：</span>
+          <label><input type="radio" name="combo.mode" value="formula" checked> 公式联动（按组合总成本算售价）</label>
+          <label><input type="radio" name="combo.mode" value="manual"> 手动组合售价</label>
+          <input type="number" id="combo-manual-price" placeholder="组合售价 元" step="0.1" disabled>
+        </div>
+
+        <div class="scenario-table-wrap" id="combo-matrix"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 充电服务 ============ -->
+  <div class="section" id="sec-charge">
+    <div class="grid">
+      <div class="panel">
+        <h3>参数设置</h3>
+
+        <div class="formula-box">
+          <div class="f-title">服务费定价公式（实时联动）</div>
+          <div class="formula-expr" id="chg.formula">
+            <span class="op">P =</span>
+            <span class="v" id="chg.f.cost">0.25</span>
+            <span class="op">÷ ( 1 −</span>
+            <span class="v" id="chg.f.plat">3%</span>
+            <span class="op">−</span>
+            <span class="v" id="chg.f.comp">4%</span>
+            <span class="op">−</span>
+            <span class="v" id="chg.f.ad">10%</span>
+            <span class="op">−</span>
+            <span class="v" id="chg.f.margin">10%</span>
+            <span class="op">) =</span>
+            <span class="result" id="chg.f.result">0.342 元/度</span>
+          </div>
+          <div class="formula-sub" id="chg.f.sub">
+            分母 = <span class="ok">0.73</span> · 当前售价偏差：<span class="warn">待计算</span>
+          </div>
+        </div>
+
+        <div class="price-mode">
+          <span class="mode-label">定价模式：</span>
+          <label><input type="radio" name="chg.mode" value="formula" checked> 公式联动</label>
+          <label><input type="radio" name="chg.mode" value="manual"> 手动售价</label>
+        </div>
+
+        <div class="section-divider">成本参数（代入公式）</div>
+        <div class="field-group">
+          <div class="field with-suffix" data-suffix="元/度">
+            <label>服务费成本</label>
+            <input type="number" class="num-input pct" id="chg.cost" value="0.25" min="0" step="0.01">
+          </div>
+          <div class="field with-suffix" data-suffix="%">
+            <label>平台费率</label>
+            <input type="number" class="num-input pct" id="chg.plat" value="3" min="0" max="100" step="0.1">
+          </div>
+        </div>
+        <div class="field-group-3">
+          <div class="field with-suffix" data-suffix="%">
+            <label>赔付率</label>
+            <input type="number" class="num-input pct" id="chg.comp" value="4" min="0" max="100" step="0.1">
+          </div>
+          <div class="field with-suffix" data-suffix="%">
+            <label>千川投流占比</label>
+            <input type="number" class="num-input pct" id="chg.ad" value="10" min="0" max="100" step="0.5">
+          </div>
+          <div class="field with-suffix" data-suffix="%">
+            <label>目标净利润率</label>
+            <input type="number" class="num-input pct" id="chg.margin" value="10" min="0" max="100" step="0.5">
+          </div>
+        </div>
+        <div class="field with-suffix" data-suffix="元/度">
+          <label>服务费售价</label>
+          <input type="number" class="num-input pct" id="chg.price" value="0.342" min="0" step="0.01">
+          <div class="hint" id="chg.price.hint">公式自动填入</div>
+        </div>
+
+        <div class="section-divider">运营参数</div>
+        <div class="field-group-3">
+          <div class="field with-suffix" data-suffix="万度">
+            <label>月充电量</label>
+            <input type="number" class="num-input pct" id="chg.vol" value="500" min="0" step="10">
+          </div>
+          <div class="field with-suffix" data-suffix="%">
+            <label>设备故障率</label>
+            <input type="number" class="num-input pct" id="chg.fail" value="3" min="0" max="100" step="0.1">
+          </div>
+          <div class="field with-suffix" data-suffix="万">
+            <label>月固定成本</label>
+            <input type="number" class="num-input pct" id="chg.fix" value="8" min="0" step="0.1">
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="kpis" id="chg-kpis"></div>
+        <div class="charts">
+          <div class="chart-box"><div class="chart-title">成本结构占比</div><canvas id="chg-cost-pie"></canvas></div>
+          <div class="chart-box"><div class="chart-title">充电量 vs 利润敏感性</div><canvas id="chg-sens"></canvas></div>
+          <div class="chart-box"><div class="chart-title">服务费 vs 利润曲线</div><canvas id="chg-price-margin"></canvas></div>
+          <div class="chart-box"><div class="chart-title">赔付率影响分析</div><canvas id="chg-comp"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 方案测算面板 -->
+    <div class="biz-scenario" id="chg-scenario">
+      <h3>📐 方案测算与可调控区间 <span class="sub">基于当前参数反推多档利润率方案</span></h3>
+      <div class="range-bar" id="chg-range"></div>
+      <div class="speed-cards" id="chg-speed"></div>
+      <div class="scenario-table-wrap" id="chg-matrix"></div>
+    </div>
+  </div>
+
+  <!-- ============ 租车业务 ============ -->
+  <div class="section" id="sec-rent">
+    <div class="grid">
+      <div class="panel">
+        <h3>参数设置</h3>
+
+        <div class="formula-box">
+          <div class="f-title">日均租金定价公式（实时联动）</div>
+          <div class="formula-expr" id="rent.formula">
+            <span class="op">P =</span>
+            <span class="v" id="rent.f.cost">110</span>
+            <span class="op">÷ ( 1 −</span>
+            <span class="v" id="rent.f.plat">3%</span>
+            <span class="op">−</span>
+            <span class="v" id="rent.f.comp">5%</span>
+            <span class="op">−</span>
+            <span class="v" id="rent.f.margin">12%</span>
+            <span class="op">) =</span>
+            <span class="result" id="rent.f.result">137.50 元/天</span>
+          </div>
+          <div class="formula-sub" id="rent.f.sub">
+            分母 = <span class="ok">0.80</span> · 当前售价偏差：<span class="warn">待计算</span>
+          </div>
+        </div>
+
+        <div class="price-mode">
+          <span class="mode-label">定价模式：</span>
+          <label><input type="radio" name="rent.mode" value="formula" checked> 公式联动</label>
+          <label><input type="radio" name="rent.mode" value="manual"> 手动租金</label>
+        </div>
+
+        <div class="section-divider">成本参数（代入公式）</div>
+        <div class="field-group-3">
+          <div class="field with-suffix" data-suffix="元/天">
+            <label>日均成本</label>
+            <input type="number" class="num-input pct" id="rent.cost" value="110" min="0" step="1">
+          </div>
+          <div class="field with-suffix" data-suffix="%">
+            <label>平台费率</label>
+            <input type="number" class="num-input pct" id="rent.plat" value="3" min="0" max="100" step="0.1">
+          </div>
+          <div class="field with-suffix" data-suffix="%">
+            <label>客诉赔付率</label>
+            <input type="number" class="num-input pct" id="rent.comp" value="5" min="0" max="100" step="0.1">
+          </div>
+        </div>
+        <div class="field-group">
+          <div class="field with-suffix" data-suffix="%">
+            <label>目标净利润率</label>
+            <input type="number" class="num-input pct" id="rent.margin" value="12" min="0" max="100" step="0.5">
+          </div>
+          <div class="field with-suffix" data-suffix="元/天">
+            <label>日均租金</label>
+            <input type="number" class="num-input pct" id="rent.price" value="137.5" min="0" step="1">
+            <div class="hint" id="rent.price.hint">公式自动填入</div>
+          </div>
+        </div>
+
+        <div class="section-divider">运营参数</div>
+        <div class="field-group-3">
+          <div class="field with-suffix" data-suffix="单">
+            <label>月订单数</label>
+            <input type="number" class="num-input pct" id="rent.vol" value="3000" min="0" step="50">
+          </div>
+          <div class="field with-suffix" data-suffix="天">
+            <label>平均租期</label>
+            <input type="number" class="num-input pct" id="rent.days" value="3" min="0.5" step="0.5">
+          </div>
+          <div class="field with-suffix" data-suffix="%">
+            <label>车辆出租率</label>
+            <input type="number" class="num-input pct" id="rent.util" value="70" min="0" max="100" step="1">
+          </div>
+        </div>
+        <div class="field with-suffix" data-suffix="万">
+          <label>月固定成本</label>
+          <input type="number" class="num-input pct" id="rent.fix" value="15" min="0" step="0.1">
+        </div>
+      </div>
+
+      <div>
+        <div class="kpis" id="rent-kpis"></div>
+        <div class="charts">
+          <div class="chart-box"><div class="chart-title">成本结构占比</div><canvas id="rent-cost-pie"></canvas></div>
+          <div class="chart-box"><div class="chart-title">订单量 vs 利润敏感性</div><canvas id="rent-sens"></canvas></div>
+          <div class="chart-box"><div class="chart-title">出租率 vs 利润曲线</div><canvas id="rent-util-margin"></canvas></div>
+          <div class="chart-box"><div class="chart-title">客诉赔付影响</div><canvas id="rent-comp"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 方案测算面板 -->
+    <div class="biz-scenario" id="rent-scenario">
+      <h3>📐 方案测算与可调控区间 <span class="sub">基于当前参数反推多档利润率方案</span></h3>
+      <div class="range-bar" id="rent-range"></div>
+      <div class="speed-cards" id="rent-speed"></div>
+      <div class="scenario-table-wrap" id="rent-matrix"></div>
+    </div>
+  </div>
+
+  <!-- ============ 场景对比 ============ -->
+  <div class="section" id="sec-compare">
+    <div class="panel" style="margin-bottom:16px">
+      <h3>多场景对比</h3>
+      <div class="note">在当前业务线调整参数后，点击"保存当前场景"将加入对比池；最多 6 个场景并列。</div>
+      <div class="charts" style="grid-template-columns:1fr 1fr">
+        <div class="chart-box"><div class="chart-title">净利润对比</div><canvas id="cmp-profit"></canvas></div>
+        <div class="chart-box"><div class="chart-title">毛利率 / 净利率对比</div><canvas id="cmp-margin"></canvas></div>
+      </div>
+    </div>
+    <div class="compare-grid" id="compare-cards"></div>
+  </div>
+
+  <!-- ============ 历史记录 ============ -->
+  <div class="section" id="sec-history">
+    <div class="panel">
+      <h3>历史测算记录</h3>
+      <div class="toolbar">
+        <button class="primary" onclick="exportHistory()">导出 JSON</button>
+        <button onclick="document.getElementById('importFile').click()">导入 JSON</button>
+        <input type="file" id="importFile" style="display:none" accept=".json" onchange="importHistory(event)">
+        <button onclick="clearHistory()" style="color:var(--red)">清空全部</button>
+      </div>
+      <div class="hist-list" id="hist-list"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ============ 状态与存储 ============ */
+const STORAGE_KEY = 'pl_model_history_v1';
+const scenarios = []; // 对比场景列表
+let charts = {};
+
+/* ============ Tab 切换 ============ */
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('sec-' + t.dataset.tab).classList.add('active');
+    if (t.dataset.tab === 'compare') renderCompare();
+    if (t.dataset.tab === 'history') renderHistory();
+  });
+});
+
+/* ============ 读取/写入表单 ============ */
+const getVal = id => {
+  const v = parseFloat(document.getElementById(id).value);
+  return isNaN(v) ? 0 : v;
+};
+const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+const getMode = name => document.querySelector(`input[name="${name}"]:checked`)?.value || 'formula';
+
+/* ============ 定价公式联动 ============ */
+function updateGasFormula() {
+  const cost = getVal('gas.cost'), plat = getVal('gas.platform'), ad = getVal('gas.ad'), margin = getVal('gas.margin');
+  const denom = 1 - plat/100 - ad/100 - margin/100;
+  const priceEl = document.getElementById('gas.price');
+  const marginEl = document.getElementById('gas.margin');
+  const mode = getMode('gas.mode');
+
+  // 公式展示
+  setText('gas.f.cost', cost);
+  setText('gas.f.plat', plat + '%');
+  setText('gas.f.ad', ad + '%');
+  setText('gas.f.margin', margin + '%');
+
+  if (denom <= 0) {
+    setText('gas.f.result', '不可行');
+    document.getElementById('gas.f.sub').innerHTML =
+      `<span class="warn">分母 ≤ 0：费率合计 (${(plat+ad+margin).toFixed(1)}%) 超过 100%，模型不成立</span>`;
+    return;
+  }
+  const formulaPrice = cost / denom;
+  setText('gas.f.result', formulaPrice.toFixed(2) + ' 元');
+
+  if (mode === 'formula') {
+    priceEl.value = formulaPrice.toFixed(2);
+    priceEl.disabled = true;
+    marginEl.disabled = false;
+    document.getElementById('gas.price.hint').textContent = '公式自动填入';
+    document.getElementById('gas.margin.hint').textContent = '可自由调整';
+    document.getElementById('gas.margin.hint').className = 'hint accent';
+    document.getElementById('gas.f.sub').innerHTML =
+      `分母 = <span class="ok">${denom.toFixed(3)}</span> · 建议售价 = 成本 ÷ 分母`;
+  } else {
+    priceEl.disabled = false;
+    marginEl.disabled = true;
+    const actualPrice = getVal('gas.price');
+    const impliedMargin = actualPrice > 0 ? (1 - cost/actualPrice - plat/100 - ad/100) * 100 : 0;
+    setVal('gas.margin', impliedMargin.toFixed(2));
+    setText('gas.f.margin', impliedMargin.toFixed(1) + '%');
+    const diff = actualPrice - formulaPrice;
+    const sign = diff >= 0 ? '+' : '';
+    document.getElementById('gas.price.hint').textContent = '手动输入';
+    document.getElementById('gas.margin.hint').textContent = '由售价反推';
+    document.getElementById('gas.margin.hint').className = 'hint';
+    document.getElementById('gas.f.sub').innerHTML =
+      `分母 = <span class="ok">${denom.toFixed(3)}</span> · 偏差：<span class="${diff>=0?'ok':'warn'}">${sign}${diff.toFixed(2)} 元</span>（${sign}${(diff/formulaPrice*100).toFixed(1)}%）`;
+  }
+}
+
+function updateChgFormula() {
+  const cost = getVal('chg.cost'), plat = getVal('chg.plat'), comp = getVal('chg.comp');
+  const ad = getVal('chg.ad'), margin = getVal('chg.margin');
+  const denom = 1 - plat/100 - comp/100 - ad/100 - margin/100;
+  const priceEl = document.getElementById('chg.price');
+  const marginEl = document.getElementById('chg.margin');
+  const mode = getMode('chg.mode');
+
+  setText('chg.f.cost', cost.toFixed(2));
+  setText('chg.f.plat', plat + '%');
+  setText('chg.f.comp', comp + '%');
+  setText('chg.f.ad', ad + '%');
+  setText('chg.f.margin', margin + '%');
+
+  if (denom <= 0) {
+    setText('chg.f.result', '不可行');
+    document.getElementById('chg.f.sub').innerHTML = `<span class="warn">分母 ≤ 0：费率合计超限</span>`;
+    return;
+  }
+  const fp = cost / denom;
+  setText('chg.f.result', fp.toFixed(3) + ' 元/度');
+
+  if (mode === 'formula') {
+    priceEl.value = fp.toFixed(3);
+    priceEl.disabled = true;
+    marginEl.disabled = false;
+    document.getElementById('chg.price.hint').textContent = '公式自动填入';
+    document.getElementById('chg.f.sub').innerHTML = `分母 = <span class="ok">${denom.toFixed(3)}</span>`;
+  } else {
+    priceEl.disabled = false;
+    marginEl.disabled = true;
+    const actualPrice = getVal('chg.price');
+    const implied = actualPrice > 0 ? (1 - cost/actualPrice - plat/100 - comp/100 - ad/100) * 100 : 0;
+    setVal('chg.margin', implied.toFixed(2));
+    setText('chg.f.margin', implied.toFixed(1) + '%');
+    const diff = actualPrice - fp;
+    const sign = diff >= 0 ? '+' : '';
+    document.getElementById('chg.price.hint').textContent = '手动输入';
+    document.getElementById('chg.f.sub').innerHTML =
+      `分母 = <span class="ok">${denom.toFixed(3)}</span> · 偏差：<span class="${diff>=0?'ok':'warn'}">${sign}${diff.toFixed(3)} 元/度</span>`;
+  }
+}
+
+function updateRentFormula() {
+  const cost = getVal('rent.cost'), plat = getVal('rent.plat'), comp = getVal('rent.comp'), margin = getVal('rent.margin');
+  const denom = 1 - plat/100 - comp/100 - margin/100;
+  const priceEl = document.getElementById('rent.price');
+  const marginEl = document.getElementById('rent.margin');
+  const mode = getMode('rent.mode');
+
+  setText('rent.f.cost', cost);
+  setText('rent.f.plat', plat + '%');
+  setText('rent.f.comp', comp + '%');
+  setText('rent.f.margin', margin + '%');
+
+  if (denom <= 0) {
+    setText('rent.f.result', '不可行');
+    document.getElementById('rent.f.sub').innerHTML = `<span class="warn">分母 ≤ 0：费率合计超限</span>`;
+    return;
+  }
+  const fp = cost / denom;
+  setText('rent.f.result', fp.toFixed(2) + ' 元/天');
+
+  if (mode === 'formula') {
+    priceEl.value = fp.toFixed(2);
+    priceEl.disabled = true;
+    marginEl.disabled = false;
+    document.getElementById('rent.price.hint').textContent = '公式自动填入';
+    document.getElementById('rent.f.sub').innerHTML = `分母 = <span class="ok">${denom.toFixed(3)}</span>`;
+  } else {
+    priceEl.disabled = false;
+    marginEl.disabled = true;
+    const actualPrice = getVal('rent.price');
+    const implied = actualPrice > 0 ? (1 - cost/actualPrice - plat/100 - comp/100) * 100 : 0;
+    setVal('rent.margin', implied.toFixed(2));
+    setText('rent.f.margin', implied.toFixed(1) + '%');
+    const diff = actualPrice - fp;
+    const sign = diff >= 0 ? '+' : '';
+    document.getElementById('rent.price.hint').textContent = '手动输入';
+    document.getElementById('rent.f.sub').innerHTML =
+      `分母 = <span class="ok">${denom.toFixed(3)}</span> · 偏差：<span class="${diff>=0?'ok':'warn'}">${sign}${diff.toFixed(2)} 元/天</span>`;
+  }
+}
+
+/* ============ 绑定输入 + 模式切换 ============ */
+document.querySelectorAll('input[type=number]').forEach(inp => {
+  inp.addEventListener('input', () => {
+    updateGasFormula(); updateChgFormula(); updateRentFormula();
+    computeAll();
+  });
+});
+document.querySelectorAll('input[type=radio][name$=".mode"]').forEach(r => {
+  r.addEventListener('change', () => {
+    updateGasFormula(); updateChgFormula(); updateRentFormula();
+    computeAll();
+  });
+});
+
+/* ============ 场景测算引擎 ============ */
+/* 按目标净利率反推售价，返回完整损益指标行 */
+function gasScenarioRow(targetMargin) {
+  const cost = getVal('gas.cost'), volume = getVal('gas.volume');
+  const redeem = getVal('gas.redeem')/100, plat = getVal('gas.platform')/100;
+  const ad = getVal('gas.ad')/100, roi = getVal('gas.roi');
+  const fixed = getVal('gas.fixed') * 10000;
+  // 反推售价: revenue*(1-plat-ad-tm) = cost*vol*redeem + fixed
+  const denom = 1 - plat - ad - targetMargin;
+  let price = 0, gmv = 0;
+  if (denom > 0) {
+    price = (cost * volume * redeem + fixed) / (volume * denom);
+    gmv = price * volume;
+  }
+  const redeemCost = cost * volume * redeem;
+  const platformFee = gmv * plat;
+  const adSpend = gmv * ad;
+  const gross = gmv - redeemCost;
+  const grossMargin = gmv > 0 ? gross / gmv : 0;
+  const opex = platformFee + adSpend + fixed;
+  const net = gmv - redeemCost - opex;
+  const netMargin = gmv > 0 ? net / gmv : 0;
+  // 盈亏平衡销量
+  const perUnitContrib = price - cost*redeem - price*plat - price*ad;
+  const bepVol = perUnitContrib > 0 ? fixed / perUnitContrib : Infinity;
+  return {
+    target: targetMargin, price, gmv, redeemCost, platformFee, adSpend, fixed,
+    gross, grossMargin, opex, net, netMargin, bepVol, roi
+  };
+}
+function chgScenarioRow(targetMargin) {
+  const cost = getVal('chg.cost'), vol = getVal('chg.vol') * 10000;
+  const fail = getVal('chg.fail')/100, comp = getVal('chg.comp')/100;
+  const plat = getVal('chg.plat')/100, ad = getVal('chg.ad')/100;
+  const fixed = getVal('chg.fix') * 10000;
+  const effVol = vol * (1 - fail);
+  const denom = 1 - plat - comp - ad - targetMargin;
+  let price = 0, revenue = 0;
+  if (denom > 0 && effVol > 0) {
+    price = (cost * effVol + fixed) / (effVol * denom);
+    revenue = price * effVol;
+  }
+  const opCost = cost * effVol;
+  const platformFee = revenue * plat;
+  const compCost = revenue * comp;
+  const adSpend = revenue * ad;
+  const gross = revenue - opCost;
+  const grossMargin = revenue > 0 ? gross / revenue : 0;
+  const opex = platformFee + compCost + adSpend + fixed;
+  const net = revenue - opCost - opex + fixed; // net already includes fixed via opex
+  const net2 = revenue - opCost - platformFee - compCost - adSpend - fixed;
+  const netMargin = revenue > 0 ? net2 / revenue : 0;
+  return {
+    target: targetMargin, price, gmv: revenue, opCost, platformFee, compCost, adSpend, fixed,
+    gross, grossMargin, opex, net: net2, netMargin
+  };
+}
+function rentScenarioRow(targetMargin) {
+  const cost = getVal('rent.cost'), vol = getVal('rent.vol'), days = getVal('rent.days');
+  const util = getVal('rent.util')/100, comp = getVal('rent.comp')/100, plat = getVal('rent.plat')/100;
+  const fixed = getVal('rent.fix') * 10000;
+  const eff = vol * days * util;
+  const denom = 1 - plat - comp - targetMargin;
+  let price = 0, revenue = 0;
+  if (denom > 0 && eff > 0) {
+    price = (cost * eff + fixed) / (eff * denom);
+    revenue = price * eff;
+  }
+  const opCost = cost * eff;
+  const platformFee = revenue * plat;
+  const compCost = revenue * comp;
+  const gross = revenue - opCost;
+  const grossMargin = revenue > 0 ? gross / revenue : 0;
+  const opex = platformFee + compCost + fixed;
+  const net = revenue - opCost - platformFee - compCost - fixed;
+  const netMargin = revenue > 0 ? net / revenue : 0;
+  return {
+    target: targetMargin, price, gmv: revenue, opCost, platformFee, compCost, fixed,
+    gross, grossMargin, opex, net, netMargin
+  };
+}
+
+/* 格式化 */
+const fmtM = n => !isFinite(n) ? '∞' : (Math.abs(n) >= 1e4 ? (n/1e4).toFixed(1)+'万' : n.toFixed(0));
+const fmtP = n => !isFinite(n) ? '∞' : (n*100).toFixed(2) + '%';
+const fmtY = n => !isFinite(n) ? '∞' : n.toFixed(2);
+const cellCls = n => n > 0.0001 ? 'cell-pos' : n < -0.0001 ? 'cell-neg' : 'cell-zero';
+const bandCls = m => m < 0 ? 'band-loss' : m < 0.03 ? 'band-even' : m < 0.08 ? 'band-healthy' : 'band-excess';
+
+/* 渲染加油方案 */
+function renderGasScenarios() {
+  const tiers = [-0.05, -0.02, 0, 0.02, 0.03, 0.05, 0.06, 0.08, 0.10, 0.12, 0.15];
+  const rows = tiers.map(gasScenarioRow);
+  const currentMargin = getVal('gas.margin') / 100;
+  const cur = gasScenarioRow(currentMargin);
+
+  // 可调控区间条
+  const r0 = gasScenarioRow(0), r5 = gasScenarioRow(0.05), r8 = gasScenarioRow(0.08);
+  document.getElementById('gas-range').innerHTML = `
+    <div class="range-item"><span class="r-label">保本售价 (0%)</span><span class="r-value">${fmtY(r0.price)}</span><span class="r-unit">元</span></div>
+    <div class="range-item"><span class="r-label">稳健售价 (5%)</span><span class="r-value">${fmtY(r5.price)}</span><span class="r-unit">元</span></div>
+    <div class="range-item"><span class="r-label">目标售价 (8%)</span><span class="r-value">${fmtY(r8.price)}</span><span class="r-unit">元</span></div>
+    <div class="range-item"><span class="r-label">当前参数售价</span><span class="r-value" style="color:var(--accent)">${fmtY(cur.price)}</span><span class="r-unit">元 (${(currentMargin*100).toFixed(1)}%)</span></div>
+    <div class="range-item"><span class="r-label">可调控区间</span><span class="r-value" style="color:var(--green)">${fmtY(r0.price)} ~ ${fmtY(r8.price)}</span></div>
+  `;
+
+  // 速览卡片
+  const card = (cls, tag, label, r, unit) => `
+    <div class="speed-card ${cls}">
+      <div class="s-title"><span>${label}</span><span class="s-tag">${tag}</span></div>
+      <div class="s-main"><span class="s-price">${fmtY(r.price)}</span><span class="s-unit">${unit}</span></div>
+      <div class="s-metrics">
+        <div class="m-row"><span class="m-k">GMV</span><span class="m-v">${fmtM(r.gmv)}</span></div>
+        <div class="m-row"><span class="m-k">净利额</span><span class="m-v ${cellCls(r.net)}">${fmtM(r.net)}</span></div>
+        <div class="m-row"><span class="m-k">毛利率</span><span class="m-v">${fmtP(r.grossMargin)}</span></div>
+        <div class="m-row"><span class="m-k">净利率</span><span class="m-v ${cellCls(r.netMargin)}">${fmtP(r.netMargin)}</span></div>
+        <div class="m-row"><span class="m-k">保本销量</span><span class="m-v">${fmtM(r.bepVol)}</span></div>
+        <div class="m-row"><span class="m-k">千川ROI</span><span class="m-v">${r.roi.toFixed(1)}x</span></div>
+      </div>
+    </div>`;
+  document.getElementById('gas-speed').innerHTML =
+    card('breakeven','保本','保本协议 (0%)', r0, '元/张') +
+    card('stable','稳健','稳健方案 (5%)', r5, '元/张') +
+    card('target','目标','目标方案 (8%)', r8, '元/张');
+
+  // 矩阵表
+  const colHeaders = ['目标净利率','售价','GMV','核销成本','平台费','千川','固定','毛利额','毛利率','费用合计','净利额','实际净利率','保本销量'];
+  const ths = colHeaders.map((h,i)=> i===0 ? `<th>${h}</th>` : `<th>${h}</th>`).join('');
+  const trs = rows.map(r => {
+    const isCurrent = Math.abs(r.target - currentMargin) < 0.0001;
+    return `<tr class="${bandCls(r.target)} ${isCurrent?'is-current':''}">
+      <td>${(r.target*100).toFixed(0)}%</td>
+      <td>${fmtY(r.price)}</td>
+      <td>${fmtM(r.gmv)}</td>
+      <td>${fmtM(r.redeemCost)}</td>
+      <td>${fmtM(r.platformFee)}</td>
+      <td>${fmtM(r.adSpend)}</td>
+      <td>${fmtM(r.fixed)}</td>
+      <td class="${cellCls(r.gross)}">${fmtM(r.gross)}</td>
+      <td>${fmtP(r.grossMargin)}</td>
+      <td>${fmtM(r.opex)}</td>
+      <td class="${cellCls(r.net)}">${fmtM(r.net)}</td>
+      <td class="${cellCls(r.netMargin)}">${fmtP(r.netMargin)}</td>
+      <td>${fmtM(r.bepVol)}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('gas-matrix').innerHTML =
+    `<table class="scenario-table"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
+}
+
+/* ============ 组合券售卖成本计算 ============ */
+const COMBO_PRESETS = {
+  '30x2':  [{ tierIdx: 4, qty: 2 }],
+  '30+50': [{ tierIdx: 4, qty: 1 }, { tierIdx: 5, qty: 1 }],
+  '20x3':  [{ tierIdx: 2, qty: 3 }],
+  '10x5':  [{ tierIdx: 1, qty: 5 }],
+};
+// comboItems: [{ id, tierIdx, qty }]
+let comboItems = [
+  { id: 1, tierIdx: 4, qty: 1 },
+  { id: 2, tierIdx: 5, qty: 1 },
+];
+let comboNextId = 3;
+let comboManualPrice = 120;
+
+function addComboItem(tierIdx, qty = 1) {
+  if (tierIdx < 0 || tierIdx >= GAS_TIERS.length) return;
+  comboItems.push({ id: comboNextId++, tierIdx, qty: Math.max(1, qty|0) });
+  renderComboModule();
+  computeAll();
+}
+function removeComboItem(id) {
+  comboItems = comboItems.filter(x => x.id !== id);
+  renderComboModule();
+  computeAll();
+}
+function setComboQty(id, qty) {
+  const item = comboItems.find(x => x.id === id);
+  if (!item) return;
+  item.qty = Math.max(1, qty|0);
+  renderComboModule();
+  computeAll();
+}
+function clearCombo() {
+  comboItems = [];
+  renderComboModule();
+  computeAll();
+}
+function applyComboPreset(key) {
+  const preset = COMBO_PRESETS[key];
+  if (!preset) return;
+  comboItems = preset.map(p => ({ id: comboNextId++, tierIdx: p.tierIdx, qty: p.qty }));
+  renderComboModule();
+  computeAll();
+}
+
+/* 组合汇总：总面值/总成本/总售价（每组合一套） */
+function comboTotals() {
+  let totalFace = 0, totalCost = 0, totalSavedPrice = 0, totalQty = 0;
+  comboItems.forEach(it => {
+    const s = gasTierState[it.tierIdx];
+    if (!s) return;
+    totalFace += s.face * it.qty;
+    totalCost += s.cost * it.qty;
+    totalSavedPrice += s.price * it.qty;
+    totalQty += it.qty;
+  });
+  return { totalFace, totalCost, totalSavedPrice, totalQty };
+}
+/* 组合方案矩阵单行：按目标净利润率反推组合售价 */
+function comboScenarioRow(targetMargin) {
+  const { totalCost } = comboTotals();
+  const volume = getVal('gas.volume');
+  const redeem = getVal('gas.redeem')/100;
+  const plat = getVal('gas.platform')/100;
+  const ad = getVal('gas.ad')/100;
+  const fixed = getVal('gas.fixed') * 10000;
+  const denom = 1 - plat - ad - targetMargin;
+  let comboPrice = 0, gmv = 0;
+  if (denom > 0 && volume > 0) {
+    comboPrice = (totalCost * volume * redeem + fixed) / (volume * denom);
+    gmv = comboPrice * volume;
+  }
+  const redeemCost = totalCost * volume * redeem;
+  const platformFee = gmv * plat;
+  const adSpend = gmv * ad;
+  const gross = gmv - redeemCost;
+  const grossMargin = gmv > 0 ? gross / gmv : 0;
+  const opex = platformFee + adSpend + fixed;
+  const net = gmv - redeemCost - opex;
+  const netMargin = gmv > 0 ? net / gmv : 0;
+  const perUnitContrib = comboPrice - totalCost*redeem - comboPrice*plat - comboPrice*ad;
+  const bepVol = perUnitContrib > 0 ? fixed / perUnitContrib : Infinity;
+  return { target: targetMargin, comboPrice, gmv, redeemCost, platformFee, adSpend, fixed,
+           gross, grossMargin, opex, net, netMargin, bepVol };
+}
+
+function renderComboModule() {
+  // ① 档位选择下拉
+  const sel = document.getElementById('combo-add-select');
+  if (sel) {
+    sel.innerHTML = GAS_TIERS.map((t, i) => {
+      const s = gasTierState[i];
+      return `<option value="${i}">${t.name}（面值${s.face} 成本${s.cost} 售${s.price}）</option>`;
+    }).join('');
+  }
+  // ② 组合项卡片
+  const itemsEl = document.getElementById('combo-items');
+  if (!itemsEl) return;
+  if (comboItems.length === 0) {
+    itemsEl.innerHTML = `<div class="combo-empty" style="grid-column:1/-1">组合为空 — 点击"+ 添加"或选预设组合</div>`;
+  } else {
+    itemsEl.innerHTML = comboItems.map(it => {
+      const t = GAS_TIERS[it.tierIdx];
+      const s = gasTierState[it.tierIdx];
+      return `
+      <div class="combo-item">
+        <div class="ci-head">
+          <span class="ci-name">${t.name}</span>
+          <button class="ci-remove" data-remove="${it.id}" title="移除">×</button>
+        </div>
+        <div class="ci-meta">
+          面值 ${s.face} · 成本 ${s.cost}<br>
+          档位售价 ${s.price} 元
+        </div>
+        <div class="ci-qty">
+          <button data-dec="${it.id}">−</button>
+          <input type="number" value="${it.qty}" min="1" data-qty="${it.id}">
+          <button data-inc="${it.id}">+</button>
+          <span>张 / 套</span>
+        </div>
+      </div>`;
+    }).join('');
+    // 绑定卡片内事件（事件委托）
+    itemsEl.querySelectorAll('[data-remove]').forEach(b => b.onclick = () => removeComboItem(+b.dataset.remove));
+    itemsEl.querySelectorAll('[data-inc]').forEach(b => b.onclick = () => {
+      const it = comboItems.find(x => x.id === +b.dataset.inc);
+      if (it) setComboQty(it.id, it.qty + 1);
+    });
+    itemsEl.querySelectorAll('[data-dec]').forEach(b => b.onclick = () => {
+      const it = comboItems.find(x => x.id === +b.dataset.dec);
+      if (it && it.qty > 1) setComboQty(it.id, it.qty - 1);
+    });
+    itemsEl.querySelectorAll('input[data-qty]').forEach(inp => {
+      inp.onchange = () => setComboQty(+inp.dataset.qty, parseInt(inp.value) || 1);
+    });
+  }
+
+  // ③ 汇总 KPI
+  const totals = comboTotals();
+  const mode = document.querySelector('input[name="combo.mode"]:checked')?.value || 'formula';
+  const manualEl = document.getElementById('combo-manual-price');
+  if (manualEl) {
+    manualEl.disabled = mode !== 'manual';
+    manualEl.value = comboManualPrice;
+  }
+  const summaryEl = document.getElementById('combo-summary');
+  if (!summaryEl) return;
+  if (comboItems.length === 0) {
+    summaryEl.innerHTML = '';
+  } else {
+    const avgCost = totals.totalQty > 0 ? (totals.totalCost / totals.totalQty) : 0;
+    summaryEl.innerHTML = `
+      <div class="cs-item"><div class="cs-label">组合张数</div><div class="cs-value">${totals.totalQty}<span class="cs-unit">张</span></div></div>
+      <div class="cs-item"><div class="cs-label">总面值</div><div class="cs-value">${totals.totalFace.toFixed(2)}<span class="cs-unit">元</span></div></div>
+      <div class="cs-item purple"><div class="cs-label">总成本</div><div class="cs-value">${totals.totalCost.toFixed(2)}<span class="cs-unit">元</span></div></div>
+      <div class="cs-item accent"><div class="cs-label">档位累计售价</div><div class="cs-value">${totals.totalSavedPrice.toFixed(2)}<span class="cs-unit">元</span></div></div>
+      <div class="cs-item"><div class="cs-label">平均单张成本</div><div class="cs-value">${avgCost.toFixed(2)}<span class="cs-unit">元</span></div></div>
+    `;
+  }
+
+  // ④ 组合矩阵表
+  const matrixEl = document.getElementById('combo-matrix');
+  if (!matrixEl) return;
+  if (comboItems.length === 0) { matrixEl.innerHTML = ''; return; }
+
+  const tiers = [-0.05, -0.02, 0, 0.03, 0.05, 0.08, 0.10, 0.12, 0.15, 0.20];
+  const rows = tiers.map(comboScenarioRow);
+  const currentMargin = getVal('gas.margin') / 100;
+  const colHeaders = ['目标净利率','组合售价','GMV','核销成本','平台费','千川','固定','毛利','毛利率','费用','净利','净利率','保本销量'];
+  const trs = rows.map(r => {
+    const isCurrent = Math.abs(r.target - currentMargin) < 0.0001;
+    return `<tr class="${bandCls(r.target)} ${isCurrent?'is-current':''}">
+      <td>${(r.target*100).toFixed(0)}%</td>
+      <td>${fmtY(r.comboPrice)}</td>
+      <td>${fmtM(r.gmv)}</td>
+      <td>${fmtM(r.redeemCost)}</td>
+      <td>${fmtM(r.platformFee)}</td>
+      <td>${fmtM(r.adSpend)}</td>
+      <td>${fmtM(r.fixed)}</td>
+      <td class="${cellCls(r.gross)}">${fmtM(r.gross)}</td>
+      <td>${fmtP(r.grossMargin)}</td>
+      <td>${fmtM(r.opex)}</td>
+      <td class="${cellCls(r.net)}">${fmtM(r.net)}</td>
+      <td class="${cellCls(r.netMargin)}">${fmtP(r.netMargin)}</td>
+      <td>${fmtM(r.bepVol)}</td>
+    </tr>`;
+  }).join('');
+  matrixEl.innerHTML = `<table class="scenario-table"><thead><tr>${colHeaders.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${trs}</tbody></table>`;
+}
+
+/* 渲染充电方案 */
+function renderChgScenarios() {
+  const tiers = [-0.05, -0.02, 0, 0.03, 0.05, 0.08, 0.10, 0.12, 0.15, 0.20];
+  const rows = tiers.map(chgScenarioRow);
+  const currentMargin = getVal('chg.margin') / 100;
+  const cur = chgScenarioRow(currentMargin);
+  const r0 = chgScenarioRow(0), r5 = chgScenarioRow(0.05), r8 = chgScenarioRow(0.08);
+  document.getElementById('chg-range').innerHTML = `
+    <div class="range-item"><span class="r-label">保本服务费 (0%)</span><span class="r-value">${fmtY(r0.price)}</span><span class="r-unit">元/度</span></div>
+    <div class="range-item"><span class="r-label">稳健 (5%)</span><span class="r-value">${fmtY(r5.price)}</span><span class="r-unit">元/度</span></div>
+    <div class="range-item"><span class="r-label">目标 (8%)</span><span class="r-value">${fmtY(r8.price)}</span><span class="r-unit">元/度</span></div>
+    <div class="range-item"><span class="r-label">当前参数</span><span class="r-value" style="color:var(--accent)">${fmtY(cur.price)}</span><span class="r-unit">元/度 (${(currentMargin*100).toFixed(1)}%)</span></div>
+    <div class="range-item"><span class="r-label">可调控区间</span><span class="r-value" style="color:var(--green)">${fmtY(r0.price)} ~ ${fmtY(r8.price)}</span></div>
+  `;
+  const card = (cls, tag, label, r) => `
+    <div class="speed-card ${cls}">
+      <div class="s-title"><span>${label}</span><span class="s-tag">${tag}</span></div>
+      <div class="s-main"><span class="s-price">${fmtY(r.price)}</span><span class="s-unit">元/度</span></div>
+      <div class="s-metrics">
+        <div class="m-row"><span class="m-k">月收入</span><span class="m-v">${fmtM(r.gmv)}</span></div>
+        <div class="m-row"><span class="m-k">净利额</span><span class="m-v ${cellCls(r.net)}">${fmtM(r.net)}</span></div>
+        <div class="m-row"><span class="m-k">毛利率</span><span class="m-v">${fmtP(r.grossMargin)}</span></div>
+        <div class="m-row"><span class="m-k">净利率</span><span class="m-v ${cellCls(r.netMargin)}">${fmtP(r.netMargin)}</span></div>
+      </div>
+    </div>`;
+  document.getElementById('chg-speed').innerHTML =
+    card('breakeven','保本','保本协议 (0%)', r0) +
+    card('stable','稳健','稳健方案 (5%)', r5) +
+    card('target','目标','目标方案 (8%)', r8);
+  const colHeaders = ['目标净利率','服务费','收入','运营成本','平台费','赔付','千川','固定','毛利','毛利率','费用','净利','净利率'];
+  const trs = rows.map(r => {
+    const isCurrent = Math.abs(r.target - currentMargin) < 0.0001;
+    return `<tr class="${bandCls(r.target)} ${isCurrent?'is-current':''}">
+      <td>${(r.target*100).toFixed(0)}%</td>
+      <td>${fmtY(r.price)}</td>
+      <td>${fmtM(r.gmv)}</td>
+      <td>${fmtM(r.opCost)}</td>
+      <td>${fmtM(r.platformFee)}</td>
+      <td>${fmtM(r.compCost)}</td>
+      <td>${fmtM(r.adSpend)}</td>
+      <td>${fmtM(r.fixed)}</td>
+      <td class="${cellCls(r.gross)}">${fmtM(r.gross)}</td>
+      <td>${fmtP(r.grossMargin)}</td>
+      <td>${fmtM(r.opex)}</td>
+      <td class="${cellCls(r.net)}">${fmtM(r.net)}</td>
+      <td class="${cellCls(r.netMargin)}">${fmtP(r.netMargin)}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('chg-matrix').innerHTML =
+    `<table class="scenario-table"><thead><tr>${colHeaders.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${trs}</tbody></table>`;
+}
+
+/* 渲染租车方案 */
+function renderRentScenarios() {
+  const tiers = [-0.05, -0.02, 0, 0.03, 0.05, 0.08, 0.10, 0.12, 0.15, 0.20];
+  const rows = tiers.map(rentScenarioRow);
+  const currentMargin = getVal('rent.margin') / 100;
+  const cur = rentScenarioRow(currentMargin);
+  const r0 = rentScenarioRow(0), r5 = rentScenarioRow(0.05), r8 = rentScenarioRow(0.08);
+  document.getElementById('rent-range').innerHTML = `
+    <div class="range-item"><span class="r-label">保本日均 (0%)</span><span class="r-value">${fmtY(r0.price)}</span><span class="r-unit">元/天</span></div>
+    <div class="range-item"><span class="r-label">稳健 (5%)</span><span class="r-value">${fmtY(r5.price)}</span><span class="r-unit">元/天</span></div>
+    <div class="range-item"><span class="r-label">目标 (8%)</span><span class="r-value">${fmtY(r8.price)}</span><span class="r-unit">元/天</span></div>
+    <div class="range-item"><span class="r-label">当前参数</span><span class="r-value" style="color:var(--accent)">${fmtY(cur.price)}</span><span class="r-unit">元/天 (${(currentMargin*100).toFixed(1)}%)</span></div>
+    <div class="range-item"><span class="r-label">可调控区间</span><span class="r-value" style="color:var(--green)">${fmtY(r0.price)} ~ ${fmtY(r8.price)}</span></div>
+  `;
+  const card = (cls, tag, label, r) => `
+    <div class="speed-card ${cls}">
+      <div class="s-title"><span>${label}</span><span class="s-tag">${tag}</span></div>
+      <div class="s-main"><span class="s-price">${fmtY(r.price)}</span><span class="s-unit">元/天</span></div>
+      <div class="s-metrics">
+        <div class="m-row"><span class="m-k">月收入</span><span class="m-v">${fmtM(r.gmv)}</span></div>
+        <div class="m-row"><span class="m-k">净利额</span><span class="m-v ${cellCls(r.net)}">${fmtM(r.net)}</span></div>
+        <div class="m-row"><span class="m-k">毛利率</span><span class="m-v">${fmtP(r.grossMargin)}</span></div>
+        <div class="m-row"><span class="m-k">净利率</span><span class="m-v ${cellCls(r.netMargin)}">${fmtP(r.netMargin)}</span></div>
+      </div>
+    </div>`;
+  document.getElementById('rent-speed').innerHTML =
+    card('breakeven','保本','保本协议 (0%)', r0) +
+    card('stable','稳健','稳健方案 (5%)', r5) +
+    card('target','目标','目标方案 (8%)', r8);
+  const colHeaders = ['目标净利率','日均租金','月收入','运营成本','平台费','赔付','固定','毛利','毛利率','费用','净利','净利率'];
+  const trs = rows.map(r => {
+    const isCurrent = Math.abs(r.target - currentMargin) < 0.0001;
+    return `<tr class="${bandCls(r.target)} ${isCurrent?'is-current':''}">
+      <td>${(r.target*100).toFixed(0)}%</td>
+      <td>${fmtY(r.price)}</td>
+      <td>${fmtM(r.gmv)}</td>
+      <td>${fmtM(r.opCost)}</td>
+      <td>${fmtM(r.platformFee)}</td>
+      <td>${fmtM(r.compCost)}</td>
+      <td>${fmtM(r.fixed)}</td>
+      <td class="${cellCls(r.gross)}">${fmtM(r.gross)}</td>
+      <td>${fmtP(r.grossMargin)}</td>
+      <td>${fmtM(r.opex)}</td>
+      <td class="${cellCls(r.net)}">${fmtM(r.net)}</td>
+      <td class="${cellCls(r.netMargin)}">${fmtP(r.netMargin)}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('rent-matrix').innerHTML =
+    `<table class="scenario-table"><thead><tr>${colHeaders.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${trs}</tbody></table>`;
+}
+
+/* ============ 计算引擎 ============ */
+function computeGas() {
+  const face = getVal('gas.face'), cost = getVal('gas.cost'), price = getVal('gas.price');
+  const volume = getVal('gas.volume'), redeem = getVal('gas.redeem')/100;
+  const platformRate = getVal('gas.platform')/100, adRate = getVal('gas.ad')/100, roi = getVal('gas.roi');
+  const fixed = getVal('gas.fixed') * 10000;
+
+  const gmv = price * volume;
+  const revenue = gmv; // 销售额
+  const couponCost = cost * volume * redeem; // 核销成本
+  const platformFee = gmv * platformRate;
+  const adSpend = gmv * adRate;
+  const adRevenue = adSpend * roi;
+  const netRevenue = revenue - couponCost - platformFee - adSpend - fixed;
+  const grossProfit = revenue - couponCost;
+  const grossMargin = grossProfit / revenue;
+  const netMargin = netRevenue / revenue;
+  const bepVolume = (fixed + adSpend) / (price - cost*redeem - price*platformRate) || 0;
+  const roiOverall = netRevenue / (couponCost + platformFee + adSpend + fixed);
+
+  return {
+    label: '加油券包',
+    gmv, revenue, couponCost, platformFee, adSpend, fixed,
+    netRevenue, grossProfit, grossMargin, netMargin, bepVolume, roiOverall,
+    params: { face, cost, price, volume, redeem: redeem*100, platform: platformRate*100, ad: adRate*100, roi, fixed: fixed/10000 }
+  };
+}
+
+function computeCharge() {
+  const price = getVal('chg.price'), cost = getVal('chg.cost');
+  const vol = getVal('chg.vol') * 10000; // 度
+  const fail = getVal('chg.fail')/100, comp = getVal('chg.comp')/100, plat = getVal('chg.plat')/100;
+  const adRate = getVal('chg.ad')/100, fixed = getVal('chg.fix')*10000;
+
+  const effectiveVol = vol * (1 - fail);
+  const revenue = price * effectiveVol;
+  const opCost = cost * effectiveVol;
+  const platformFee = revenue * plat;
+  const compCost = revenue * comp;
+  const adSpend = revenue * adRate;
+  const netRevenue = revenue - opCost - platformFee - compCost - adSpend - fixed;
+  const grossProfit = revenue - opCost;
+  const grossMargin = grossProfit / revenue;
+  const netMargin = netRevenue / revenue;
+
+  return {
+    label: '充电服务',
+    revenue, opCost, platformFee, compCost, adSpend, fixed,
+    netRevenue, grossProfit, grossMargin, netMargin,
+    params: { price, cost, vol: vol/10000, fail: fail*100, comp: comp*100, plat: plat*100, ad: adRate*100, fixed: fixed/10000 }
+  };
+}
+
+function computeRent() {
+  const price = getVal('rent.price'), cost = getVal('rent.cost');
+  const vol = getVal('rent.vol'), days = getVal('rent.days');
+  const util = getVal('rent.util')/100, comp = getVal('rent.comp')/100, plat = getVal('rent.plat')/100;
+  const fixed = getVal('rent.fix')*10000;
+
+  const revenue = price * vol * days * util;
+  const opCost = cost * vol * days * util;
+  const platformFee = revenue * plat;
+  const compCost = revenue * comp;
+  const netRevenue = revenue - opCost - platformFee - compCost - fixed;
+  const grossProfit = revenue - opCost;
+  const grossMargin = grossProfit / revenue;
+  const netMargin = netRevenue / revenue;
+
+  return {
+    label: '租车业务',
+    revenue, opCost, platformFee, compCost, fixed,
+    netRevenue, grossProfit, grossMargin, netMargin,
+    params: { price, cost, vol, days, util: util*100, comp: comp*100, plat: plat*100, fixed: fixed/10000 }
+  };
+}
+
+/* ============ 渲染 KPI ============ */
+function fmt(n) {
+  if (!isFinite(n)) return '—';
+  if (Math.abs(n) >= 1e8) return (n/1e8).toFixed(2) + '亿';
+  if (Math.abs(n) >= 1e4) return (n/1e4).toFixed(2) + '万';
+  return n.toFixed(2);
+}
+function fmtPct(n) { return isFinite(n) ? (n*100).toFixed(2) + '%' : '—'; }
+function cls(n) { return n > 0 ? 'positive' : n < 0 ? 'negative' : 'neutral'; }
+
+function renderKpis(id, r) {
+  const el = document.getElementById(id);
+  el.innerHTML = `
+    <div class="kpi"><div class="label">月 GMV / 收入</div><div class="value">${fmt(r.revenue)}</div><div class="hint">元</div></div>
+    <div class="kpi green"><div class="label">毛利润</div><div class="value ${cls(r.grossProfit)}">${fmt(r.grossProfit)}</div><div class="hint">毛利率 ${fmtPct(r.grossMargin)}</div></div>
+    <div class="kpi ${r.netRevenue>=0?'green':'red'}"><div class="label">净利润</div><div class="value ${cls(r.netRevenue)}">${fmt(r.netRevenue)}</div><div class="hint">净利率 ${fmtPct(r.netMargin)}</div></div>
+    <div class="kpi purple"><div class="label">${r.bepVolume!==undefined?'盈亏平衡销量':'ROI'}</div><div class="value">${r.bepVolume!==undefined?fmt(r.bepVolume):fmtPct(r.roiOverall)}</div><div class="hint">${r.bepVolume!==undefined?'张/月':'整体回报率'}</div></div>
+  `;
+}
+
+/* ============ Chart.js 工具 ============ */
+Chart.defaults.color = '#64748b';
+Chart.defaults.borderColor = '#e2e8f0';
+Chart.defaults.font.family = '-apple-system, PingFang SC, sans-serif';
+
+const CHART_COLORS = {
+  orange: '#f97316',
+  blue: '#2563eb',
+  purple: '#7c3aed',
+  gray: '#94a3b8',
+  green: '#10b981',
+  red: '#ef4444',
+  cyan: '#06b6d4',
+  yellow: '#f59e0b',
+};
+
+function makePie(canvasId, labels, data, colors) {
+  if (charts[canvasId]) charts[canvasId].destroy();
+  charts[canvasId] = new Chart(document.getElementById(canvasId), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: colors,
+        borderColor: '#ffffff',
+        borderWidth: 3,
+        hoverOffset: 8
+      }]
+    },
+    options: {
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 14, usePointStyle: true, pointStyle: 'circle' } }
+      },
+      cutout: '60%',
+      animation: { animateRotate: true, duration: 800 }
+    }
+  });
+}
+function makeLine(canvasId, labels, datasets, yLabel) {
+  if (charts[canvasId]) charts[canvasId].destroy();
+  charts[canvasId] = new Chart(document.getElementById(canvasId), {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 14, usePointStyle: true, pointStyle: 'circle' } } },
+      scales: {
+        y: { title: { display: true, text: yLabel, font: { size: 11 } }, grid: { color: '#e2e8f0' }, ticks: { font: { size: 10 } } },
+        x: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } }
+      },
+      interaction: { intersect: false, mode: 'index' },
+      animation: { duration: 600 }
+    }
+  });
+}
+function makeBar(canvasId, labels, datasets, yLabel) {
+  if (charts[canvasId]) charts[canvasId].destroy();
+  charts[canvasId] = new Chart(document.getElementById(canvasId), {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 14, usePointStyle: true, pointStyle: 'rect' } } },
+      scales: {
+        y: { title: { display: true, text: yLabel, font: { size: 11 } }, grid: { color: '#e2e8f0' }, ticks: { font: { size: 10 } } },
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+      },
+      animation: { duration: 600 }
+    }
+  });
+}
+
+/* ============ 渲染业务线图表 ============ */
+function renderGas(r) {
+  renderKpis('gas-kpis', r);
+  makePie('gas-cost-pie',
+    ['核销成本', '平台费', '千川投流', '固定成本'],
+    [r.couponCost, r.platformFee, r.adSpend, r.fixed],
+    [CHART_COLORS.orange, CHART_COLORS.blue, CHART_COLORS.purple, CHART_COLORS.gray]);
+
+  // 销量敏感性 — 柱状图
+  const vols = [1000, 3000, 5000, 10000, 20000, 50000, 100000];
+  const profits = vols.map(v => {
+    const p = r.params;
+    const gmv = p.price * v;
+    return (gmv - p.cost*v*p.redeem/100 - gmv*p.platform/100 - gmv*p.ad/100 - p.fixed*10000);
+  });
+  makeBar('gas-sens', vols.map(v=>v>=10000?(v/10000)+'万':v),
+    [{ label: '净利润', data: profits, backgroundColor: profits.map(p => p >= 0 ? CHART_COLORS.green + '99' : CHART_COLORS.red + '99'), borderColor: profits.map(p => p >= 0 ? CHART_COLORS.green : CHART_COLORS.red), borderWidth: 1, borderRadius: 6 }], '净利润(元)');
+
+  // 售价-利润率曲线 — 渐变填充
+  const prices = [];
+  const margins = [];
+  const p = r.params;
+  for (let pr = p.cost * p.redeem/100 + 1; pr < p.cost * p.redeem/100 * 5; pr += 2) {
+    prices.push(pr.toFixed(0));
+    const gmv = pr * p.volume;
+    const net = gmv - p.cost*p.volume*p.redeem/100 - gmv*p.platform/100 - gmv*p.ad/100 - p.fixed*10000;
+    margins.push((net/gmv*100));
+  }
+  makeLine('gas-price-margin', prices,
+    [{ label: '净利率(%)', data: margins, borderColor: CHART_COLORS.purple, backgroundColor: CHART_COLORS.purple + '22', fill: true, tension: .4, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2.5 }], '净利率(%)');
+
+  // 盈亏平衡 — 面积图
+  const beVols = [];
+  const beProfits = [];
+  const step = Math.max(100, Math.floor((r.bepVolume || 1000) / 10));
+  for (let v = 0; v <= (r.bepVolume || 1000) * 2; v += step) {
+    beVols.push(v);
+    const gmv = p.price * v;
+    beProfits.push(gmv - p.cost*v*p.redeem/100 - gmv*p.platform/100 - gmv*p.ad/100 - p.fixed*10000);
+  }
+  makeLine('gas-be', beVols,
+    [{ label: '净利润', data: beProfits, borderColor: CHART_COLORS.green, backgroundColor: CHART_COLORS.green + '22', fill: true, tension: .4, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2.5 }], '净利润(元)');
+}
+
+function renderCharge(r) {
+  renderKpis('chg-kpis', r);
+  makePie('chg-cost-pie',
+    ['运营成本', '平台费', '赔付成本', '千川投流', '固定成本'],
+    [r.opCost, r.platformFee, r.compCost, r.adSpend, r.fixed],
+    [CHART_COLORS.green, CHART_COLORS.blue, CHART_COLORS.red, CHART_COLORS.purple, CHART_COLORS.gray]);
+
+  // 充电量敏感性 — 柱状图
+  const vols = [50, 100, 300, 500, 1000, 2000, 5000];
+  const p = r.params;
+  const profits = vols.map(v => {
+    const eff = v*10000*(1-p.fail/100);
+    const rev = p.price*eff;
+    return rev - p.cost*eff - rev*p.plat/100 - rev*p.comp/100 - rev*p.ad/100 - p.fixed*10000;
+  });
+  makeBar('chg-sens', vols.map(v=>v+'万'),
+    [{ label: '净利润', data: profits, backgroundColor: profits.map(p => p >= 0 ? CHART_COLORS.green + '99' : CHART_COLORS.red + '99'), borderColor: profits.map(p => p >= 0 ? CHART_COLORS.green : CHART_COLORS.red), borderWidth: 1, borderRadius: 6 }], '净利润(元)');
+
+  // 服务费 vs 利润曲线
+  const prices = [], margins = [];
+  for (let pr = p.cost + 0.05; pr < p.cost * 4; pr += 0.05) {
+    prices.push(pr.toFixed(2));
+    const eff = p.vol*10000*(1-p.fail/100);
+    const rev = pr*eff;
+    const net = rev - p.cost*eff - rev*p.plat/100 - rev*p.comp/100 - rev*p.ad/100 - p.fixed*10000;
+    margins.push(net/rev*100);
+  }
+  makeLine('chg-price-margin', prices,
+    [{ label: '净利率(%)', data: margins, borderColor: CHART_COLORS.blue, backgroundColor: CHART_COLORS.blue + '22', fill: true, tension: .4, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2.5 }], '净利率(%)');
+
+  // 赔付率影响 — 面积图
+  const comps = [0, 1, 2, 4, 6, 8, 10, 15];
+  const compProfits = comps.map(c => {
+    const eff = p.vol*10000*(1-p.fail/100);
+    const rev = p.price*eff;
+    return rev - p.cost*eff - rev*p.plat/100 - rev*c/100 - rev*p.ad/100 - p.fixed*10000;
+  });
+  makeLine('chg-comp', comps.map(c=>c+'%'),
+    [{ label: '净利润', data: compProfits, borderColor: CHART_COLORS.red, backgroundColor: CHART_COLORS.red + '22', fill: true, tension: .4, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2.5 }], '净利润(元)');
+}
+
+function renderRent(r) {
+  renderKpis('rent-kpis', r);
+  makePie('rent-cost-pie',
+    ['运营成本', '平台费', '赔付成本', '固定成本'],
+    [r.opCost, r.platformFee, r.compCost, r.fixed],
+    [CHART_COLORS.purple, CHART_COLORS.blue, CHART_COLORS.red, CHART_COLORS.gray]);
+
+  // 订单量敏感性 — 柱状图
+  const vols = [500, 1000, 3000, 5000, 10000, 20000];
+  const p = r.params;
+  const profits = vols.map(v => {
+    const rev = p.price*v*p.days*p.util/100;
+    return rev - p.cost*v*p.days*p.util/100 - rev*p.plat/100 - rev*p.comp/100 - p.fixed*10000;
+  });
+  makeBar('rent-sens', vols,
+    [{ label: '净利润', data: profits, backgroundColor: profits.map(p => p >= 0 ? CHART_COLORS.green + '99' : CHART_COLORS.red + '99'), borderColor: profits.map(p => p >= 0 ? CHART_COLORS.green : CHART_COLORS.red), borderWidth: 1, borderRadius: 6 }], '净利润(元)');
+
+  // 出租率 vs 利润曲线
+  const utils = [30, 40, 50, 60, 70, 80, 90, 100];
+  const utilProfits = utils.map(u => {
+    const rev = p.price*p.vol*p.days*u/100;
+    return rev - p.cost*p.vol*p.days*u/100 - rev*p.plat/100 - rev*p.comp/100 - p.fixed*10000;
+  });
+  makeLine('rent-util-margin', utils.map(u=>u+'%'),
+    [{ label: '净利润', data: utilProfits, borderColor: CHART_COLORS.green, backgroundColor: CHART_COLORS.green + '22', fill: true, tension: .4, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2.5 }], '净利润(元)');
+
+  // 客诉赔付影响 — 面积图
+  const comps = [0, 2, 4, 6, 8, 10, 15];
+  const compProfits = comps.map(c => {
+    const rev = p.price*p.vol*p.days*p.util/100;
+    return rev - p.cost*p.vol*p.days*p.util/100 - rev*p.plat/100 - rev*c/100 - p.fixed*10000;
+  });
+  makeLine('rent-comp', comps.map(c=>c+'%'),
+    [{ label: '净利润', data: compProfits, borderColor: CHART_COLORS.red, backgroundColor: CHART_COLORS.red + '22', fill: true, tension: .4, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2.5 }], '净利润(元)');
+}
+
+function computeAll() {
+  renderGas(computeGas());
+  renderCharge(computeCharge());
+  renderRent(computeRent());
+  renderGasScenarios();
+  renderChgScenarios();
+  renderRentScenarios();
+  renderComboModule();
+  if (document.querySelector('.tab[data-tab=compare]').classList.contains('active')) renderCompare();
+}
+
+/* ============ 场景对比 ============ */
+function saveScenario() {
+  const name = document.getElementById('scenarioName').value.trim() || ('场景 ' + (scenarios.length + 1));
+  const g = computeGas(), c = computeCharge(), r = computeRent();
+  scenarios.push({
+    name, time: new Date().toLocaleString('zh-CN'),
+    gas: g, charge: c, rent: r
+  });
+  if (scenarios.length > 6) scenarios.shift();
+  document.getElementById('scenarioName').value = '';
+  renderCompare();
+  // 自动跳到对比页
+  document.querySelector('.tab[data-tab=compare]').click();
+}
+
+function renderCompare() {
+  const cardsEl = document.getElementById('compare-cards');
+  if (scenarios.length === 0) {
+    cardsEl.innerHTML = '<div class="empty">暂无场景，请调整参数后点击"保存当前场景"</div>';
+  } else {
+    cardsEl.innerHTML = scenarios.map((s, i) => `
+      <div class="compare-card">
+        <button class="del" onclick="scenarios.splice(${i},1);renderCompare()">×</button>
+        <div class="sc-name">${s.name} <span style="color:var(--muted);font-size:11px;font-weight:400">${s.time}</span></div>
+        <div class="sc-row"><span class="k"><span class="badge gas">加油</span> 净利润</span><span class="v ${cls(s.gas.netRevenue)}">${fmt(s.gas.netRevenue)}</span></div>
+        <div class="sc-row"><span class="k"><span class="badge charge">充电</span> 净利润</span><span class="v ${cls(s.charge.netRevenue)}">${fmt(s.charge.netRevenue)}</span></div>
+        <div class="sc-row"><span class="k"><span class="badge rent">租车</span> 净利润</span><span class="v ${cls(s.rent.netRevenue)}">${fmt(s.rent.netRevenue)}</span></div>
+        <div class="sc-row" style="border-top:1px solid var(--border);margin-top:6px;padding-top:8px">
+          <span class="k"><b>合计净利润</b></span>
+          <span class="v ${cls(s.gas.netRevenue+s.charge.netRevenue+s.rent.netRevenue)}">${fmt(s.gas.netRevenue+s.charge.netRevenue+s.rent.netRevenue)}</span>
+        </div>
+        <div class="sc-row"><span class="k">加权净利率</span><span class="v">${fmtPct((s.gas.netRevenue+s.charge.netRevenue+s.rent.netRevenue)/(s.gas.revenue+s.charge.revenue+s.rent.revenue))}</span></div>
+      </div>
+    `).join('');
+  }
+
+  // 图表
+  if (scenarios.length > 0) {
+    const labels = scenarios.map(s => s.name);
+    makeBar('cmp-profit', labels, [
+      { label: '加油', data: scenarios.map(s => s.gas.netRevenue), backgroundColor: CHART_COLORS.orange + 'cc', borderRadius: 6 },
+      { label: '充电', data: scenarios.map(s => s.charge.netRevenue), backgroundColor: CHART_COLORS.green + 'cc', borderRadius: 6 },
+      { label: '租车', data: scenarios.map(s => s.rent.netRevenue), backgroundColor: CHART_COLORS.purple + 'cc', borderRadius: 6 }
+    ], '净利润(元)');
+
+    makeBar('cmp-margin', labels, [
+      { label: '加油净利率', data: scenarios.map(s => s.gas.netMargin*100), backgroundColor: CHART_COLORS.orange + 'cc', borderRadius: 6 },
+      { label: '充电净利率', data: scenarios.map(s => s.charge.netMargin*100), backgroundColor: CHART_COLORS.green + 'cc', borderRadius: 6 },
+      { label: '租车净利率', data: scenarios.map(s => s.rent.netMargin*100), backgroundColor: CHART_COLORS.purple + 'cc', borderRadius: 6 }
+    ], '净利率(%)');
+  } else {
+    if (charts['cmp-profit']) { charts['cmp-profit'].destroy(); charts['cmp-profit'] = null; }
+    if (charts['cmp-margin']) { charts['cmp-margin'].destroy(); charts['cmp-margin'] = null; }
+    document.getElementById('cmp-profit').parentElement.innerHTML = '<div class="chart-box"><div class="chart-title">净利润对比</div><div class="empty">暂无数据</div></div>';
+  }
+}
+
+/* ============ 历史记录（内存存储） ============ */
+let historyStore = [];
+try { historyStore = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { historyStore = []; }
+
+function persistHistory() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(historyStore)); } catch(e) { /* ignore */ }
+}
+
+function addToHistory() {
+  const g = computeGas(), c = computeCharge(), r = computeRent();
+  historyStore.unshift({
+    id: Date.now(),
+    time: new Date().toLocaleString('zh-CN'),
+    gas: g, charge: c, rent: r,
+    params: { gas: g.params, charge: c.params, rent: r.params }
+  });
+  if (historyStore.length > 50) historyStore.pop();
+  persistHistory();
+}
+
+function renderHistory() {
+  const el = document.getElementById('hist-list');
+  if (historyStore.length === 0) {
+    el.innerHTML = '<div class="empty">暂无历史记录。保存场景后将自动记录。</div>';
+    return;
+  }
+  el.innerHTML = historyStore.map(h => `
+    <div class="hist-item">
+      <div class="h-info">
+        <div class="h-name">${new Date(h.id).toLocaleString('zh-CN')}</div>
+        <div class="h-meta">加油净利 ${fmt(h.gas.netRevenue)} · 充电 ${fmt(h.charge.netRevenue)} · 租车 ${fmt(h.rent.netRevenue)}</div>
+      </div>
+      <div class="h-actions">
+        <button class="load" onclick="loadHistory(${h.id})">加载参数</button>
+        <button class="del" onclick="deleteHistory(${h.id})">删除</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function loadHistory(id) {
+  const h = historyStore.find(x => x.id === id);
+  if (!h) return;
+  const p = h.params;
+  // 加油
+  document.getElementById('gas.face').value = p.gas.face;
+  document.getElementById('gas.cost').value = p.gas.cost;
+  document.getElementById('gas.price').value = p.gas.price;
+  document.getElementById('gas.volume').value = p.gas.volume;
+  document.getElementById('gas.redeem').value = p.gas.redeem;
+  document.getElementById('gas.platform').value = p.gas.platform;
+  document.getElementById('gas.ad').value = p.gas.ad;
+  document.getElementById('gas.roi').value = p.gas.roi;
+  document.getElementById('gas.fixed').value = p.gas.fixed;
+  // 充电
+  document.getElementById('chg.price').value = p.charge.price;
+  document.getElementById('chg.cost').value = p.charge.cost;
+  document.getElementById('chg.vol').value = p.charge.vol;
+  document.getElementById('chg.fail').value = p.charge.fail;
+  document.getElementById('chg.comp').value = p.charge.comp;
+  document.getElementById('chg.plat').value = p.charge.plat;
+  document.getElementById('chg.ad').value = p.charge.ad;
+  document.getElementById('chg.fix').value = p.charge.fixed;
+  // 租车
+  document.getElementById('rent.price').value = p.rent.price;
+  document.getElementById('rent.cost').value = p.rent.cost;
+  document.getElementById('rent.vol').value = p.rent.vol;
+  document.getElementById('rent.days').value = p.rent.days;
+  document.getElementById('rent.util').value = p.rent.util;
+  document.getElementById('rent.comp').value = p.rent.comp;
+  document.getElementById('rent.plat').value = p.rent.plat;
+  document.getElementById('rent.fix').value = p.rent.fixed;
+  computeAll();
+  document.querySelector('.tab[data-tab=gas]').click();
+}
+
+function deleteHistory(id) {
+  historyStore = historyStore.filter(x => x.id !== id);
+  persistHistory();
+  renderHistory();
+}
+
+function clearHistory() {
+  if (confirm('确认清空所有历史记录？')) {
+    historyStore = [];
+    persistHistory();
+    renderHistory();
+  }
+}
+
+function exportHistory() {
+  const blob = new Blob([JSON.stringify(historyStore, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = '损益模型历史_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importHistory(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (Array.isArray(data)) {
+        historyStore = historyStore.concat(data);
+        persistHistory();
+        renderHistory();
+        alert('导入成功，新增 ' + data.length + ' 条记录');
+      }
+    } catch(err) { alert('导入失败：' + err.message); }
+  };
+  reader.readAsText(file);
+}
+
+/* ============ 重置 ============ */
+function resetParams() {
+  if (!confirm('重置所有参数为默认值？')) return;
+  location.reload();
+}
+
+/* ============ 加油券包 6 档价格档位（每档独立存储） ============ */
+/* 数据来源：优惠金额=面值(原价)，内部结算价=成本价 */
+const GAS_TIERS = [
+  { name: '200-8',  face: 8,  cost: 0.5 },
+  { name: '200-10', face: 10, cost: 2 },
+  { name: '200-20', face: 20, cost: 12 },
+  { name: '200-25', face: 25, cost: 15 },
+  { name: '200-30', face: 30, cost: 22 },
+  { name: '200-50', face: 50, cost: 43 },
+];
+let activeGasTier = null; // 当前选中的档位 index，null 表示未选中任何档位
+
+/* 每档独立存储：face/cost/price 三个值独立保存，切换时恢复 */
+const gasTierState = {};
+GAS_TIERS.forEach((t, i) => {
+  const plat = getVal('gas.platform'), ad = getVal('gas.ad'), margin = getVal('gas.margin');
+  const denom = 1 - plat/100 - ad/100 - margin/100;
+  const sugPrice = denom > 0 ? t.cost / denom : t.cost;
+  gasTierState[i] = { face: t.face, cost: t.cost, price: parseFloat(sugPrice.toFixed(2)) };
+});
+
+/* 把当前表单的面值/成本/售价写回到指定档位 */
+function saveGasTierState(idx) {
+  if (idx === null || idx === undefined) return;
+  gasTierState[idx] = {
+    face: getVal('gas.face'),
+    cost: getVal('gas.cost'),
+    price: getVal('gas.price'),
+  };
+}
+
+/* 按当前公式参数算建议售价（仅供首次初始化与未选中档位的显示参考） */
+function gasFormulaPrice(cost) {
+  const plat = getVal('gas.platform'), ad = getVal('gas.ad'), margin = getVal('gas.margin');
+  const denom = 1 - plat/100 - ad/100 - margin/100;
+  return denom > 0 ? cost / denom : cost;
+}
+
+function renderGasTiers() {
+  const el = document.getElementById('gas-tiers');
+  if (!el) return;
+  el.innerHTML = GAS_TIERS.map((t, i) => {
+    const s = gasTierState[i];
+    return `
+    <div class="tier-card ${activeGasTier === i ? 'active' : ''}" data-idx="${i}">
+      <div class="t-name">${t.name}</div>
+      <div class="t-cost">面值 ${s.face} · 成本 ${s.cost}</div>
+      <div class="t-price">售 ${s.price}元</div>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.tier-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const idx = parseInt(card.dataset.idx);
+      // ① 切换前：保存当前档位状态
+      saveGasTierState(activeGasTier);
+      activeGasTier = idx;
+      const s = gasTierState[idx];
+      // ② 载入目标档位的保存状态（成本、面值、售价都是上次保存的值）
+      setVal('gas.cost', s.cost);
+      setVal('gas.face', s.face);
+      setVal('gas.price', s.price);
+      // ③ 切到手动模式：档位自带保存的售价，让用户直接看到隐含利润率
+      document.querySelectorAll('input[name="gas.mode"]').forEach(r => r.checked = (r.value === 'manual'));
+      updateGasFormula(); updateChgFormula(); updateRentFormula();
+      renderGasTiers();
+      updateCurrentTierIndicator();
+      computeAll();
+    });
+  });
+}
+
+/* 自动保存：成本/面值/售价 任一输入变化 → 写入当前档位 */
+['gas.cost', 'gas.face', 'gas.price'].forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('input', () => {
+    if (activeGasTier !== null) {
+      saveGasTierState(activeGasTier);
+      renderGasTiers();
+      updateCurrentTierIndicator();
+    }
+  });
+});
+
+/* 更新「当前档位」指示器（方案面板标题右侧） */
+function updateCurrentTierIndicator() {
+  const el = document.getElementById('gas-current-tier');
+  if (!el) return;
+  if (activeGasTier === null) {
+    el.classList.remove('active');
+    el.innerHTML = `<span class="ti-dot"></span><span class="ti-text">未选择档位（自定义参数）</span>`;
+    return;
+  }
+  const t = GAS_TIERS[activeGasTier];
+  const s = gasTierState[activeGasTier];
+  el.classList.add('active');
+  el.innerHTML = `
+    <span class="ti-dot"></span>
+    <span class="ti-text">
+      当前优惠券：<span class="ti-name">${t.name}</span>
+      （面值 ${s.face} · 成本 ${s.cost} · 售价 ${s.price} 元）
+    </span>`;
+}
+
+/* ============ 自动保存历史（每30秒） ============ */
+setInterval(() => { addToHistory(); }, 30000);
+
+/* ============ 启动 ============ */
+renderGasTiers();
+updateCurrentTierIndicator();
+renderComboModule();
+
+/* 组合模块事件绑定 */
+document.getElementById('combo-add-btn').onclick = () => {
+  const sel = document.getElementById('combo-add-select');
+  addComboItem(parseInt(sel.value) || 0, 1);
+};
+document.getElementById('combo-clear').onclick = () => {
+  if (comboItems.length === 0) return;
+  clearCombo();
+};
+document.querySelectorAll('.combo-toolbar button.preset').forEach(btn => {
+  btn.onclick = () => applyComboPreset(btn.dataset.preset);
+});
+document.getElementById('combo-manual-price').addEventListener('input', e => {
+  comboManualPrice = parseFloat(e.target.value) || 0;
+  renderComboModule();
+  computeAll();
+});
+
+updateGasFormula(); updateChgFormula(); updateRentFormula();
+computeAll();
+</script>
+</body>
+</html>
