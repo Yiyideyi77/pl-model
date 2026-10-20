@@ -355,6 +355,43 @@
     font-family: "SF Mono", Menlo, monospace; font-weight: 600;
   }
 
+  /* 端外售券档位 chip（紧凑版） */
+  #ext-tiers { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+  .tier-chip {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 6px;
+    cursor: pointer;
+    text-align: center;
+    transition: all .2s ease;
+    user-select: none;
+    box-shadow: var(--shadow-sm);
+  }
+  .tier-chip:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  .tier-chip.active {
+    background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px #2563eb33, var(--shadow-md);
+  }
+  .tier-chip .tc-name {
+    font-size: 13px; font-weight: 700; color: var(--text);
+    margin-bottom: 4px;
+  }
+  .tier-chip .tc-sub {
+    font-size: 10px; color: var(--muted); line-height: 1.4;
+  }
+
+  /* 端外售券渠道参数面板布局 */
+  .ext-ch-body { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+  .ext-ch-body > div { flex: 1 1 260px; min-width: 0; }
+  #ext-channels { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+  #ext-channels .panel.ext-full { grid-column: 1 / -1; }
+
   /* ============ 方案测算模块 ============ */
   .scenario-intro {
     background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
@@ -679,6 +716,58 @@
     border: 2px dashed var(--border); border-radius: 12px;
     background: var(--panel);
   }
+
+  /* 端外售券 - 渠道切换 */
+  .ext-channel-toggle {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    padding: 4px; background: var(--panel-2); border-radius: 10px;
+  }
+  .ext-channel-toggle label {
+    flex: 1; min-width: 180px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 14px; background: transparent;
+    color: var(--muted); cursor: pointer; border-radius: 8px;
+    font-size: 13px; font-weight: 500;
+    transition: all .2s ease;
+  }
+  .ext-channel-toggle label:hover { color: var(--text); }
+  .ext-channel-toggle input[type=radio] { display: none; }
+  .ext-channel-toggle input[type=radio]:checked + span,
+  .ext-channel-toggle label:has(input[type=radio]:checked) {
+    color: #ffffff; background: var(--accent);
+    box-shadow: 0 2px 4px #2563eb44;
+  }
+  .ext-kpi-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px; margin-top: 12px;
+  }
+  .ext-kpi {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+    box-shadow: var(--shadow-sm);
+    position: relative; overflow: hidden;
+  }
+  .ext-kpi::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--accent);
+  }
+  .ext-kpi.pos::before { background: var(--green); }
+  .ext-kpi.neg::before { background: var(--red); }
+  .ext-kpi.warn::before { background: var(--yellow); }
+  .ext-kpi .k-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+  .ext-kpi .k-value { font-size: 20px; font-weight: 700; color: var(--text); font-family: "SF Mono", Menlo, monospace; }
+  .ext-kpi .k-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .ext-channel-head {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 14px; padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .ext-channel-head .tag {
+    padding: 3px 10px; border-radius: 6px;
+    font-size: 11px; font-weight: 600;
+    background: #2563eb18; color: var(--accent);
+  }
+  .ext-channel-head .tag.sup { background: #16a34a18; color: var(--green); }
 </style>
 </head>
 <body>
@@ -699,6 +788,7 @@
     <div class="tab" data-tab="rent">🚗 租车业务</div>
     <div class="tab" data-tab="compare">📊 场景对比</div>
     <div class="tab" data-tab="history">📁 历史记录</div>
+    <div class="tab" data-tab="external">🎯 端外售券</div>
   </div>
 
   <!-- ============ 加油券包 ============ -->
@@ -712,19 +802,15 @@
         <div class="formula-box">
           <div class="f-title">定价公式（实时联动）</div>
           <div class="formula-expr" id="gas.formula">
-            <span class="op">P =</span>
-            <span class="v" id="gas.f.cost">43</span>
-            <span class="op">÷ ( 1 −</span>
-            <span class="v" id="gas.f.plat">3%</span>
-            <span class="op">−</span>
-            <span class="v" id="gas.f.ad">15%</span>
-            <span class="op">−</span>
-            <span class="v" id="gas.f.margin">8%</span>
+            <span class="op">P = (</span>
+            <span class="v" id="gas.f.numer">—</span>
+            <span class="op">) ÷ (</span>
+            <span class="v" id="gas.f.denom">—</span>
             <span class="op">) =</span>
-            <span class="result" id="gas.f.result">58.11 元</span>
+            <span class="result" id="gas.f.result">— 元</span>
           </div>
           <div class="formula-sub" id="gas.f.sub">
-            分母 = <span class="ok">0.74</span> · 当前售价偏差：<span class="warn">待计算</span>
+            收入 = 售卖利润 + 过期收入 + 核销订单佣金
           </div>
         </div>
 
@@ -743,28 +829,28 @@
         <div class="field-group-3">
           <div class="field with-suffix" data-suffix="元">
             <label>成本价</label>
-            <input type="number" class="num-input pct" id="gas.cost" value="43" min="0" step="0.1">
+            <input type="number" class="num-input pct" id="gas.cost" value="43" min="0" step="0.1" autocomplete="off">
             <div class="hint">如 200减50=43</div>
           </div>
           <div class="field with-suffix" data-suffix="%">
             <label>平台费率</label>
-            <input type="number" class="num-input pct" id="gas.platform" value="1" min="0" max="100" step="0.1">
+            <input type="number" class="num-input pct" id="gas.platform" value="1" min="0" max="100" step="0.1" autocomplete="off">
           </div>
           <div class="field with-suffix" data-suffix="%">
             <label>千川投流占比</label>
-            <input type="number" class="num-input pct" id="gas.ad" value="15" min="0" max="100" step="0.5">
-            <div class="hint">自然流量为主≤15%</div>
+            <input type="number" class="num-input pct" id="gas.ad" value="5" min="0" max="100" step="0.5" autocomplete="off">
+            <div class="hint">自找主播，投流5%</div>
           </div>
         </div>
         <div class="field-group">
           <div class="field with-suffix" data-suffix="%">
             <label>目标净利润率</label>
-            <input type="number" class="num-input pct" id="gas.margin" value="8" min="0" max="100" step="0.5">
+            <input type="number" class="num-input pct" id="gas.margin" value="8" min="0" max="100" step="0.5" autocomplete="off">
             <div class="hint accent" id="gas.margin.hint">公式驱动售价</div>
           </div>
           <div class="field with-suffix" data-suffix="元">
             <label>售价 / 实际定价</label>
-            <input type="number" class="num-input pct" id="gas.price" value="58.11" min="0" step="0.1">
+            <input type="number" class="num-input pct" id="gas.price" value="58.11" min="0" step="0.1" autocomplete="off">
             <div class="hint" id="gas.price.hint">公式自动填入</div>
           </div>
         </div>
@@ -773,25 +859,26 @@
         <div class="field-group">
           <div class="field with-suffix" data-suffix="元">
             <label>券面值</label>
-            <input type="number" class="num-input pct" id="gas.face" value="200" min="1">
+            <input type="number" class="num-input pct" id="gas.face" value="200" min="1" autocomplete="off">
           </div>
           <div class="field with-suffix" data-suffix="张">
             <label>月销量</label>
-            <input type="number" class="num-input pct" id="gas.volume" value="10000" min="0" step="100">
+            <input type="number" class="num-input pct" id="gas.volume" value="10000" min="0" step="100" autocomplete="off">
           </div>
         </div>
         <div class="field-group-3">
           <div class="field with-suffix" data-suffix="%">
             <label>核销率</label>
-            <input type="number" class="num-input pct" id="gas.redeem" value="70" min="0" max="100" step="0.5">
+            <input type="number" class="num-input pct" id="gas.redeem" value="70" min="0" max="100" step="0.5" autocomplete="off">
           </div>
-          <div class="field with-suffix" data-suffix="x">
-            <label>千川 ROI</label>
-            <input type="number" class="num-input pct" id="gas.roi" value="2" min="0" step="0.1">
+          <div class="field with-suffix" data-suffix="%">
+            <label>核销订单利润率</label>
+            <input type="number" class="num-input pct" id="gas.orderRate" value="0.5" min="0" max="100" step="0.1" autocomplete="off">
+            <div class="hint">核销后订单抽佣</div>
           </div>
           <div class="field with-suffix" data-suffix="万">
             <label>月固定成本</label>
-            <input type="number" class="num-input pct" id="gas.fixed" value="5" min="0" step="0.1">
+            <input type="number" class="num-input pct" id="gas.fixed" value="5" min="0" step="0.1" autocomplete="off">
           </div>
         </div>
       </div>
@@ -1085,6 +1172,190 @@
     </div>
   </div>
 
+  <!-- ============ 端外售券 ============ -->
+  <div class="section" id="sec-external">
+    <div class="panel" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <h3 style="margin-bottom:0">渠道选择 <span class="sub">双渠道共用档位参数，损益独立测算</span></h3>
+        <div class="ext-channel-toggle" id="ext-channel-toggle" style="flex:0 0 auto;max-width:560px">
+          <label><input type="radio" name="ext.channel" value="douyin" checked> 📱 抖音（自找主播 + 投流）</label>
+          <label><input type="radio" name="ext.channel" value="supplier"> 🏢 供应商代售</label>
+          <label><input type="radio" name="ext.channel" value="both"> 📊 双渠道并列</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- 档位参数（共用，全宽） -->
+    <div class="panel" style="margin-bottom:20px">
+      <h3>档位与共用参数 <span class="sub">双渠道共用，点击档位快速填入</span></h3>
+
+      <div class="section-divider">加油券档位（点击快速填入）</div>
+      <div class="tier-grid" id="ext-tiers"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-top:4px;align-items:start">
+        <div>
+          <div class="section-divider">核心档位参数</div>
+          <div class="field-group-3">
+            <div class="field with-suffix" data-suffix="元">
+              <label>券面值</label>
+              <input type="number" class="num-input pct" id="ext.face" value="200" min="1" autocomplete="off">
+            </div>
+            <div class="field with-suffix" data-suffix="元">
+              <label>优惠金额</label>
+              <input type="number" class="num-input pct" id="ext.discount" value="15" min="0" step="0.5" autocomplete="off">
+              <div class="hint" id="ext.cost.hint">CP 成本 6 元</div>
+            </div>
+            <div class="field with-suffix" data-suffix="元">
+              <label>CP 成本</label>
+              <input type="number" class="num-input pct" id="ext.cpCost" value="6" min="0" step="0.1" autocomplete="off">
+              <div class="hint" id="ext.cpCost.hint">成本率 40%</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-divider">核销与订单</div>
+          <div class="field-group-3">
+            <div class="field with-suffix" data-suffix="%">
+              <label>核销率</label>
+              <input type="number" class="num-input pct" id="ext.redeem" value="70" min="0" max="100" step="0.5" autocomplete="off">
+            </div>
+            <div class="field with-suffix" data-suffix="元">
+              <label>单券对应订单金额</label>
+              <input type="number" class="num-input pct" id="ext.orderAmount" value="300" min="0" step="10" autocomplete="off">
+              <div class="hint">核销时产生的加油订单</div>
+            </div>
+            <div class="field with-suffix" data-suffix="%">
+              <label>订单利润率</label>
+              <input type="number" class="num-input pct" id="ext.orderMargin" value="0.5" min="0" max="100" step="0.05" autocomplete="off">
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-divider">规模参数</div>
+          <div class="field-group">
+            <div class="field with-suffix" data-suffix="张">
+              <label>月销量</label>
+              <input type="number" class="num-input pct" id="ext.volume" value="5400" min="0" step="100" autocomplete="off">
+            </div>
+            <div class="field with-suffix" data-suffix="万">
+              <label>月固定成本</label>
+              <input type="number" class="num-input pct" id="ext.fixed" value="5" min="0" step="0.1" autocomplete="off">
+              <div class="hint">人力 / 系统等不随销量变动，在月度维度扣除</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 渠道参数（2 列，单渠道时占满全宽） -->
+    <div id="ext-channels" style="margin-bottom:20px">
+      <!-- 抖音参数面板 -->
+      <div class="panel" id="ext-douyin-panel">
+        <h3>📱 抖音渠道参数</h3>
+        <div class="ext-ch-body">
+          <div>
+            <div class="section-divider">成本项（按券销售额计）</div>
+            <div class="field-group-3">
+              <div class="field with-suffix" data-suffix="%">
+                <label>达人佣金率</label>
+                <input type="number" class="num-input pct" id="ext.dy.commission" value="0" min="0" max="100" step="0.1" autocomplete="off">
+                <div class="hint">自找主播可设 0</div>
+              </div>
+              <div class="field with-suffix" data-suffix="%">
+                <label>投流占比</label>
+                <input type="number" class="num-input pct" id="ext.dy.ad" value="5" min="0" max="100" step="0.1" autocomplete="off">
+              </div>
+              <div class="field with-suffix" data-suffix="%">
+                <label>平台费率</label>
+                <input type="number" class="num-input pct" id="ext.dy.platform" value="1" min="0" max="100" step="0.1" autocomplete="off">
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="section-divider">定价</div>
+            <div class="field-group">
+              <div class="field with-suffix" data-suffix="元">
+                <label>券售价</label>
+                <input type="number" class="num-input pct" id="ext.dy.price" value="15" min="0" step="0.1" autocomplete="off">
+                <div class="hint" id="ext.dy.price.hint">= 档位原价（原售价），可手动调整</div>
+              </div>
+              <div class="field">
+                <label>&nbsp;</label>
+                <div class="formula-box" style="margin:0">
+                  <div class="f-title" style="font-size:11px">抖音固定成本率合计</div>
+                  <div class="formula-expr" id="ext.dy.totalRate" style="font-size:14px">6.0%</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 供应商参数面板 -->
+      <div class="panel" id="ext-supplier-panel" style="display:none">
+        <h3>🏢 供应商渠道参数</h3>
+        <div class="ext-ch-body">
+          <div>
+            <div class="section-divider">提货与分润</div>
+            <div class="field-group-3">
+              <div class="field with-suffix" data-suffix="%">
+                <label>供应商提货价 / 面值</label>
+                <input type="number" class="num-input pct" id="ext.sp.buyRate" value="85" min="0" max="100" step="0.5" autocomplete="off">
+                <div class="hint">即供应商按面值 85% 提货</div>
+              </div>
+              <div class="field with-suffix" data-suffix="%">
+                <label>平台 CP 分摊比例</label>
+                <input type="number" class="num-input pct" id="ext.sp.platformShare" value="100" min="0" max="100" step="1" autocomplete="off">
+                <div class="hint">默认 100% 平台垫付</div>
+              </div>
+              <div class="field with-suffix" data-suffix="%">
+                <label>系统分摊 / 面值</label>
+                <input type="number" class="num-input pct" id="ext.sp.sysRate" value="2" min="0" max="100" step="0.1" autocomplete="off">
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="section-divider">供应商收益</div>
+            <div class="field-group-3">
+              <div class="field with-suffix" data-suffix="%">
+                <label>返利 / 面值</label>
+                <input type="number" class="num-input pct" id="ext.sp.rebateRate" value="2" min="0" max="100" step="0.1" autocomplete="off">
+              </div>
+              <div class="field with-suffix" data-suffix="元">
+                <label>供应商单张毛利</label>
+                <input type="number" class="num-input pct" id="ext.sp.supplierProfit" value="30" min="0" step="0.5" autocomplete="off">
+                <div class="hint">面值 − 提货价</div>
+              </div>
+              <div class="field">
+                <label>&nbsp;</label>
+                <div class="formula-box" style="margin:0">
+                  <div class="f-title" style="font-size:11px">供应商提货价</div>
+                  <div class="formula-expr" id="ext.sp.buyPrice" style="font-size:14px">170 元</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI 卡 -->
+    <div id="ext-kpis" style="margin-top:16px;display:flex;flex-direction:column;gap:16px"></div>
+
+    <!-- 全档位损益表 -->
+    <div class="biz-scenario" style="margin-top:16px">
+      <h3>
+        📋 全档位损益明细
+        <span class="sub">13 档加油券（门槛 200 元）单券利润与月度测算</span>
+        <span class="tier-indicator" id="ext-current-tier">
+          <span class="ti-dot"></span>
+          <span class="ti-text">当前档位</span>
+        </span>
+      </h3>
+      <div class="scenario-table-wrap" id="ext-matrix"></div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -1102,8 +1373,346 @@ document.querySelectorAll('.tab').forEach(t => {
     document.getElementById('sec-' + t.dataset.tab).classList.add('active');
     if (t.dataset.tab === 'compare') renderCompare();
     if (t.dataset.tab === 'history') renderHistory();
+    if (t.dataset.tab === 'external') initExternal();
   });
 });
+
+/* ============ 端外售券 ============ */
+const EXT_FUEL_TIERS = [
+  { name: '200-8',  discount: 8,  cpCost: 0.5, origPrice: 8 },
+  { name: '200-9',  discount: 9,  cpCost: 1,   origPrice: 9 },
+  { name: '200-10', discount: 10, cpCost: 2,   origPrice: 10 },
+  { name: '200-12', discount: 12, cpCost: 3,   origPrice: 12 },
+  { name: '200-15', discount: 15, cpCost: 6,   origPrice: 15 },
+  { name: '200-16', discount: 16, cpCost: 8,   origPrice: 16 },
+  { name: '200-18', discount: 18, cpCost: 8.5, origPrice: 18 },
+  { name: '200-20', discount: 20, cpCost: 12,  origPrice: 20 },
+  { name: '200-22', discount: 22, cpCost: 13,  origPrice: 22 },
+  { name: '200-25', discount: 25, cpCost: 15,  origPrice: 25 },
+  { name: '200-28', discount: 28, cpCost: 19,  origPrice: 28 },
+  { name: '200-30', discount: 30, cpCost: 22,  origPrice: 30 },
+  { name: '200-50', discount: 50, cpCost: 43,  origPrice: 50 },
+];
+let extInited = false;
+let extCurrentTier = '200-15';
+
+function extGetVal(id) {
+  const v = parseFloat(document.getElementById(id).value);
+  return isNaN(v) ? 0 : v;
+}
+
+function extSetVal(id, v) {
+  const el = document.getElementById(id);
+  if (el) el.value = v;
+}
+
+function extCalcDouyin(p) {
+  // 抖音：收入三块、成本三块
+  const sellPrice = p.sellPrice;
+  const redeemRate = p.redeem / 100;
+  const expireRate = 1 - redeemRate;
+  const rTicket = sellPrice;
+  const rExpire = p.cpCost * expireRate;
+  const rOrder  = p.orderAmount * redeemRate * p.orderMargin / 100;
+  const totalRev = rTicket + rExpire + rOrder;
+  const cAd = sellPrice * p.ad / 100;
+  const cPlat = sellPrice * p.platform / 100;
+  const cComm = sellPrice * p.commission / 100;
+  const cCp = p.cpCost * redeemRate;
+  const totalCost = cAd + cPlat + cComm + cCp;
+  const profit = totalRev - totalCost;
+  const margin = sellPrice > 0 ? profit / sellPrice : 0;
+  return {
+    channel: 'douyin',
+    sellPrice, totalRev, totalCost, profit, margin,
+    rTicket, rExpire, rOrder,
+    cAd, cPlat, cComm, cCp,
+    redeemRate, fixedPerUnit: 0
+  };
+}
+
+function extCalcSupplier(p) {
+  // 供应商：平台收入 = 提货价 − CP 分摊 − 系统分摊 − 返利
+  const buyPrice = p.face * p.buyRate / 100;
+  const sysCost = p.face * p.sysRate / 100;
+  const rebate = p.face * p.rebateRate / 100;
+  const cpShare = p.cpCost * p.platformShare / 100;
+  const platProfit = buyPrice - cpShare - sysCost - rebate;
+  const supplierProfit = p.supplierProfit;
+  const margin = buyPrice > 0 ? platProfit / buyPrice : 0;
+  return {
+    channel: 'supplier',
+    sellPrice: buyPrice, // 平台"售价"视角=提货价
+    totalRev: buyPrice,
+    totalCost: cpShare + sysCost + rebate,
+    profit: platProfit,
+    margin,
+    buyPrice, supplierProfit,
+    sysCost, rebate, cpShare
+  };
+}
+
+function extRenderTiers() {
+  const wrap = document.getElementById('ext-tiers');
+  if (!wrap) return;
+  wrap.innerHTML = EXT_FUEL_TIERS.map(t =>
+    `<div class="tier-chip ${t.name === extCurrentTier ? 'active' : ''}" data-tier="${t.name}">
+      <div class="tc-name">${t.name}</div>
+      <div class="tc-sub">售 ¥${t.origPrice} · CP ¥${t.cpCost}</div>
+    </div>`
+  ).join('');
+  wrap.querySelectorAll('.tier-chip').forEach(el => {
+    el.addEventListener('click', () => {
+      const t = EXT_FUEL_TIERS.find(x => x.name === el.dataset.tier);
+      if (!t) return;
+      extCurrentTier = t.name;
+      extSetVal('ext.discount', t.discount);
+      extSetVal('ext.cpCost', t.cpCost);
+      extSetVal('ext.dy.price', t.origPrice);
+      extRenderTiers();
+      extRender();
+    });
+  });
+}
+
+function extGetChannel() {
+  return document.querySelector('input[name="ext.channel"]:checked')?.value || 'douyin';
+}
+
+function extToggleChannel() {
+  const ch = extGetChannel();
+  const dyPanel = document.getElementById('ext-douyin-panel');
+  const spPanel = document.getElementById('ext-supplier-panel');
+  dyPanel.style.display = (ch === 'douyin' || ch === 'both') ? '' : 'none';
+  spPanel.style.display = (ch === 'supplier' || ch === 'both') ? '' : 'none';
+  dyPanel.classList.toggle('ext-full', ch === 'douyin');
+  spPanel.classList.toggle('ext-full', ch === 'supplier');
+  extRender();
+}
+
+function extBuildParams() {
+  return {
+    face: extGetVal('ext.face'),
+    discount: extGetVal('ext.discount'),
+    cpCost: extGetVal('ext.cpCost'),
+    redeem: extGetVal('ext.redeem'),
+    orderAmount: extGetVal('ext.orderAmount'),
+    orderMargin: extGetVal('ext.orderMargin'),
+    volume: extGetVal('ext.volume'),
+    fixed: extGetVal('ext.fixed') * 10000,
+    // 抖音
+    commission: extGetVal('ext.dy.commission'),
+    ad: extGetVal('ext.dy.ad'),
+    platform: extGetVal('ext.dy.platform'),
+    sellPrice: extGetVal('ext.dy.price'),
+    // 供应商
+    buyRate: extGetVal('ext.sp.buyRate'),
+    platformShare: extGetVal('ext.sp.platformShare'),
+    sysRate: extGetVal('ext.sp.sysRate'),
+    rebateRate: extGetVal('ext.sp.rebateRate'),
+    supplierProfit: extGetVal('ext.sp.supplierProfit')
+  };
+}
+
+function extUpdateHints(p) {
+  const rate = p.discount > 0 ? (p.cpCost / p.discount * 100).toFixed(0) : 0;
+  const hintCp = document.getElementById('ext.cpCost.hint');
+  if (hintCp) hintCp.textContent = `成本率 ${rate}%`;
+  const totalRate = (p.commission + p.ad + p.platform).toFixed(1);
+  const tr = document.getElementById('ext.dy.totalRate');
+  if (tr) tr.textContent = `${totalRate}%`;
+  const buyPrice = p.face * p.buyRate / 100;
+  const bp = document.getElementById('ext.sp.buyPrice');
+  if (bp) bp.textContent = `${buyPrice.toFixed(1)} 元`;
+  // 联动供应商单张毛利（自动计算 面值 - 提货价）
+  const spProfit = p.face - buyPrice;
+  if (Math.abs(extGetVal('ext.sp.supplierProfit') - spProfit) > 0.01) {
+    extSetVal('ext.sp.supplierProfit', spProfit.toFixed(1));
+  }
+}
+
+function extRenderKpi(kpiEl, channel, res, params) {
+  const monthlyProfit = res.profit * params.volume - params.fixed;
+  const monthlyGmv = res.sellPrice * params.volume;
+  const monthlyCp = res.cCp !== undefined ? res.cCp * params.volume : (res.cpShare || 0) * params.volume;
+  kpiEl.innerHTML = `
+    <div class="ext-channel-head">
+      <span class="tag ${channel === 'supplier' ? 'sup' : ''}">${channel === 'douyin' ? '📱 抖音' : '🏢 供应商'}</span>
+      <span style="color:var(--muted);font-size:12px">当前档位 ${extCurrentTier}</span>
+    </div>
+    <div class="ext-kpi-grid">
+      <div class="ext-kpi ${res.profit > 0 ? 'pos' : 'neg'}">
+        <div class="k-label">单券利润</div>
+        <div class="k-value">¥${res.profit.toFixed(2)}</div>
+        <div class="k-sub">利润率 ${(res.margin*100).toFixed(1)}%</div>
+      </div>
+      <div class="ext-kpi pos">
+        <div class="k-label">单券收入合计</div>
+        <div class="k-value">¥${res.totalRev.toFixed(2)}</div>
+        <div class="k-sub">${channel === 'douyin' ? `售券 ${res.rTicket.toFixed(0)} + 过期 ${res.rExpire.toFixed(2)} + 订单 ${res.rOrder.toFixed(2)}` : `提货价 ${res.buyPrice.toFixed(1)}`}</div>
+      </div>
+      <div class="ext-kpi ${res.totalCost > 0 ? 'warn' : 'pos'}">
+        <div class="k-label">单券成本合计</div>
+        <div class="k-value">¥${res.totalCost.toFixed(2)}</div>
+        <div class="k-sub">${channel === 'douyin' ? `投流 ${res.cAd.toFixed(2)} + 平台 ${res.cPlat.toFixed(2)} + 佣金 ${res.cComm.toFixed(2)} + CP ${res.cCp.toFixed(2)}` : `CP ${res.cpShare.toFixed(1)} + 系统 ${res.sysCost.toFixed(1)} + 返利 ${res.rebate.toFixed(1)}`}</div>
+      </div>
+      <div class="ext-kpi ${monthlyProfit > 0 ? 'pos' : 'neg'}">
+        <div class="k-label">月度净利润</div>
+        <div class="k-value">¥${(monthlyProfit/10000).toFixed(2)} 万</div>
+        <div class="k-sub">销量 ${params.volume} 张 · 固定 ${(params.fixed/10000).toFixed(1)} 万</div>
+      </div>
+      <div class="ext-kpi pos">
+        <div class="k-label">月度 GMV / 提货额</div>
+        <div class="k-value">¥${(monthlyGmv/10000).toFixed(2)} 万</div>
+        <div class="k-sub">单券 ¥${res.sellPrice.toFixed(1)}</div>
+      </div>
+      <div class="ext-kpi pos">
+        <div class="k-label">月度 CP 分摊</div>
+        <div class="k-value">¥${(monthlyCp/10000).toFixed(2)} 万</div>
+        <div class="k-sub">核销率 ${(params.redeem).toFixed(0)}%</div>
+      </div>
+    </div>`;
+}
+
+function extRenderMatrix(params) {
+  const wrap = document.getElementById('ext-matrix');
+  if (!wrap) return;
+  const ch = extGetChannel();
+  const channels = ch === 'both' ? ['douyin', 'supplier'] : [ch];
+
+  const rows = EXT_FUEL_TIERS.map(t => {
+    const isCurrent = t.name === extCurrentTier;
+    // 当前档位行跟随输入框实际值（券售价/优惠金额/CP 成本可手动改），其余档位用原价
+    const p = {
+      ...params,
+      discount: isCurrent ? params.discount : t.discount,
+      cpCost: isCurrent ? params.cpCost : t.cpCost
+    };
+    const dy = extCalcDouyin({
+      ...p,
+      sellPrice: isCurrent ? params.sellPrice : t.origPrice,
+      commission: params.commission,
+      ad: params.ad,
+      platform: params.platform
+    });
+    const sp = extCalcSupplier(p);
+    const dyMonthly = dy.profit * params.volume - params.fixed;
+    const spMonthly = sp.profit * params.volume - params.fixed;
+    return { t, dy, sp, dyMonthly, spMonthly, effDiscount: p.discount, effCpCost: p.cpCost };
+  });
+
+  const thsBase = ['档位', '优惠', 'CP 成本', '成本率'];
+  const thsDy = ['售价', '售券收入', '过期收入', '订单利润', '投流', '佣金', '平台费', 'CP 分摊', '单券利润', '利润率', '月利润(万)'];
+  const thsSp = ['提货价', 'CP 分摊', '系统', '返利', '单券利润', '利润率', '供应商毛利', '月利润(万)'];
+
+  let html = '';
+  channels.forEach(c => {
+    const isDy = c === 'douyin';
+    const ths = [...thsBase, ...(isDy ? thsDy : thsSp)];
+    const title = isDy ? '📱 抖音渠道' : '🏢 供应商渠道';
+    const trs = rows.map(r => {
+      const data = isDy ? r.dy : r.sp;
+      const monthly = isDy ? r.dyMonthly : r.spMonthly;
+      const isCurrent = r.t.name === extCurrentTier;
+      const cls = monthly >= 0 ? 'band-healthy' : 'band-loss';
+      const costRate = r.effDiscount > 0 ? (r.effCpCost / r.effDiscount * 100).toFixed(0) + '%' : '-';
+      let cells;
+      if (isDy) {
+        cells = [
+          r.t.name, r.effDiscount, r.effCpCost, costRate,
+          data.sellPrice.toFixed(1),
+          data.rTicket.toFixed(1), data.rExpire.toFixed(2), data.rOrder.toFixed(2),
+          data.cAd.toFixed(2), data.cComm.toFixed(2), data.cPlat.toFixed(2), data.cCp.toFixed(2),
+          `<span class="${data.profit >= 0 ? 'cell-pos' : 'cell-neg'}">${data.profit.toFixed(2)}</span>`,
+          `<span class="${data.margin >= 0.1 ? 'cell-pos' : data.margin >= 0 ? 'cell-zero' : 'cell-neg'}">${(data.margin*100).toFixed(1)}%</span>`,
+          `<span class="${monthly >= 0 ? 'cell-pos' : 'cell-neg'}">${(monthly/10000).toFixed(2)}</span>`
+        ];
+      } else {
+        cells = [
+          r.t.name, r.effDiscount, r.effCpCost, costRate,
+          data.buyPrice.toFixed(1),
+          data.cpShare.toFixed(2), data.sysCost.toFixed(2), data.rebate.toFixed(2),
+          `<span class="${data.profit >= 0 ? 'cell-pos' : 'cell-neg'}">${data.profit.toFixed(2)}</span>`,
+          `<span class="${data.margin >= 0.05 ? 'cell-pos' : data.margin >= 0 ? 'cell-zero' : 'cell-neg'}">${(data.margin*100).toFixed(1)}%</span>`,
+          data.supplierProfit.toFixed(1),
+          `<span class="${monthly >= 0 ? 'cell-pos' : 'cell-neg'}">${(monthly/10000).toFixed(2)}</span>`
+        ];
+      }
+      return `<tr class="${cls} ${isCurrent ? 'is-current' : ''}">${cells.map(c => `<td>${c}</td>`).join('')}</tr>`;
+    }).join('');
+    html += `<div style="margin-bottom:18px;font-weight:600;color:var(--text)">${title}</div>
+      <table class="scenario-table"><thead><tr>${ths.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${trs}</tbody></table>`;
+  });
+  wrap.innerHTML = html;
+}
+
+function extRender() {
+  if (!extInited) return;
+  const p = extBuildParams();
+  extUpdateHints(p);
+
+  const ch = extGetChannel();
+  const kpiEl = document.getElementById('ext-kpis');
+  kpiEl.innerHTML = '';
+
+  if (ch === 'douyin' || ch === 'both') {
+    const dyParams = { ...p, sellPrice: p.sellPrice };
+    const dy = extCalcDouyin(dyParams);
+    const div = document.createElement('div');
+    div.className = 'panel';
+    kpiEl.appendChild(div);
+    extRenderKpi(div, 'douyin', dy, p);
+  }
+  if (ch === 'supplier' || ch === 'both') {
+    const sp = extCalcSupplier(p);
+    const div = document.createElement('div');
+    div.className = 'panel';
+    kpiEl.appendChild(div);
+    extRenderKpi(div, 'supplier', sp, p);
+  }
+
+  extRenderMatrix(p);
+
+  const tiText = document.querySelector('#ext-current-tier .ti-text');
+  if (tiText) tiText.textContent = extCurrentTier;
+}
+
+function initExternal() {
+  if (extInited) { extRender(); return; }
+  extInited = true;
+  extRenderTiers();
+  // 参数变化监听
+  const ids = [
+    'ext.face','ext.discount','ext.cpCost','ext.redeem','ext.orderAmount','ext.orderMargin','ext.volume','ext.fixed',
+    'ext.dy.commission','ext.dy.ad','ext.dy.platform','ext.dy.price',
+    'ext.sp.buyRate','ext.sp.platformShare','ext.sp.sysRate','ext.sp.rebateRate','ext.sp.supplierProfit'
+  ];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', () => {
+      if (id === 'ext.discount' || id === 'ext.cpCost') {
+        // 同步档位 chip 高亮
+        const d = extGetVal('ext.discount');
+        const match = EXT_FUEL_TIERS.find(t => Math.abs(t.discount - d) < 0.01);
+        if (match) extCurrentTier = match.name;
+        extRenderTiers();
+      }
+      if (id === 'ext.discount') {
+        // 联动抖音售价 = 档位原价（原售价）
+        const d = extGetVal('ext.discount');
+        const match = EXT_FUEL_TIERS.find(t => Math.abs(t.discount - d) < 0.01);
+        extSetVal('ext.dy.price', match ? match.origPrice : d);
+      }
+      extRender();
+    });
+  });
+  // 渠道切换
+  document.querySelectorAll('input[name="ext.channel"]').forEach(r => {
+    r.addEventListener('change', extToggleChannel);
+  });
+  extToggleChannel();
+}
 
 /* ============ 读取/写入表单 ============ */
 const getVal = id => {
@@ -1117,16 +1726,19 @@ const getMode = name => document.querySelector(`input[name="${name}"]:checked`)?
 /* ============ 定价公式联动 ============ */
 function updateGasFormula() {
   const cost = getVal('gas.cost'), plat = getVal('gas.platform'), ad = getVal('gas.ad'), margin = getVal('gas.margin');
-  const denom = 1 - plat/100 - ad/100 - margin/100;
+  const face = getVal('gas.face'), redeem = getVal('gas.redeem')/100, orderRate = getVal('gas.orderRate')/100;
+  const volume = getVal('gas.volume'), fixed = getVal('gas.fixed') * 10000;
   const priceEl = document.getElementById('gas.price');
   const marginEl = document.getElementById('gas.margin');
   const mode = getMode('gas.mode');
 
+  // 新公式: P = (cost×redeem + fixed/vol - face×orderRate×redeem×(1-margin)) / (1-plat-ad-margin)
+  const denom = 1 - plat/100 - ad/100 - margin/100;
+  const numer = cost * redeem + (volume > 0 ? fixed / volume : 0) - face * orderRate * redeem * (1 - margin/100);
+
   // 公式展示
-  setText('gas.f.cost', cost);
-  setText('gas.f.plat', plat + '%');
-  setText('gas.f.ad', ad + '%');
-  setText('gas.f.margin', margin + '%');
+  setText('gas.f.numer', `${(cost * redeem).toFixed(2)} + ${(volume > 0 ? fixed/volume : 0).toFixed(2)} − ${(face * orderRate * redeem * (1 - margin/100)).toFixed(2)}`);
+  setText('gas.f.denom', `1 − ${plat}% − ${ad}% − ${margin}%`);
 
   if (denom <= 0) {
     setText('gas.f.result', '不可行');
@@ -1134,7 +1746,7 @@ function updateGasFormula() {
       `<span class="warn">分母 ≤ 0：费率合计 (${(plat+ad+margin).toFixed(1)}%) 超过 100%，模型不成立</span>`;
     return;
   }
-  const formulaPrice = cost / denom;
+  const formulaPrice = numer / denom;
   setText('gas.f.result', formulaPrice.toFixed(2) + ' 元');
 
   if (mode === 'formula') {
@@ -1145,21 +1757,27 @@ function updateGasFormula() {
     document.getElementById('gas.margin.hint').textContent = '可自由调整';
     document.getElementById('gas.margin.hint').className = 'hint accent';
     document.getElementById('gas.f.sub').innerHTML =
-      `分母 = <span class="ok">${denom.toFixed(3)}</span> · 建议售价 = 成本 ÷ 分母`;
+      `分子 = <span class="ok">${numer.toFixed(2)}</span> · 分母 = <span class="ok">${denom.toFixed(3)}</span> · 收入 = 售卖利润 + 过期收入 + 核销订单佣金`;
   } else {
     priceEl.disabled = false;
     marginEl.disabled = true;
     const actualPrice = getVal('gas.price');
-    const impliedMargin = actualPrice > 0 ? (1 - cost/actualPrice - plat/100 - ad/100) * 100 : 0;
+    // 反推利润率: net = totalRevenue × margin
+    // totalRevenue = price×vol + face×orderRate×vol×redeem
+    // net = price×vol×(1-plat-ad) - cost×vol×redeem + face×orderRate×vol×redeem - fixed
+    // margin = net / totalRevenue
+    const totalRev = actualPrice * volume + face * orderRate * volume * redeem;
+    const netProfit = actualPrice * volume * (1 - plat/100 - ad/100) - cost * volume * redeem + face * orderRate * volume * redeem - fixed;
+    const impliedMargin = totalRev > 0 ? (netProfit / totalRev) * 100 : 0;
     setVal('gas.margin', impliedMargin.toFixed(2));
-    setText('gas.f.margin', impliedMargin.toFixed(1) + '%');
+    setText('gas.f.denom', `1 − ${plat}% − ${ad}% − ${impliedMargin.toFixed(1)}%`);
     const diff = actualPrice - formulaPrice;
     const sign = diff >= 0 ? '+' : '';
     document.getElementById('gas.price.hint').textContent = '手动输入';
     document.getElementById('gas.margin.hint').textContent = '由售价反推';
     document.getElementById('gas.margin.hint').className = 'hint';
     document.getElementById('gas.f.sub').innerHTML =
-      `分母 = <span class="ok">${denom.toFixed(3)}</span> · 偏差：<span class="${diff>=0?'ok':'warn'}">${sign}${diff.toFixed(2)} 元</span>（${sign}${(diff/formulaPrice*100).toFixed(1)}%）`;
+      `分子 = <span class="ok">${numer.toFixed(2)}</span> · 分母 = <span class="ok">${denom.toFixed(3)}</span> · 偏差：<span class="${diff>=0?'ok':'warn'}">${sign}${diff.toFixed(2)} 元</span>`;
   }
 }
 
@@ -1266,29 +1884,37 @@ document.querySelectorAll('input[type=radio][name$=".mode"]').forEach(r => {
 function gasScenarioRow(targetMargin) {
   const cost = getVal('gas.cost'), volume = getVal('gas.volume');
   const redeem = getVal('gas.redeem')/100, plat = getVal('gas.platform')/100;
-  const ad = getVal('gas.ad')/100, roi = getVal('gas.roi');
+  const ad = getVal('gas.ad')/100;
+  const face = getVal('gas.face'), orderRate = getVal('gas.orderRate')/100;
   const fixed = getVal('gas.fixed') * 10000;
-  // 反推售价: revenue*(1-plat-ad-tm) = cost*vol*redeem + fixed
+  // 新公式反推售价
   const denom = 1 - plat - ad - targetMargin;
+  const numer = cost * redeem + (volume > 0 ? fixed / volume : 0) - face * orderRate * redeem * (1 - targetMargin);
   let price = 0, gmv = 0;
   if (denom > 0) {
-    price = (cost * volume * redeem + fixed) / (volume * denom);
+    price = numer / denom;
     gmv = price * volume;
   }
   const redeemCost = cost * volume * redeem;
   const platformFee = gmv * plat;
   const adSpend = gmv * ad;
-  const gross = gmv - redeemCost;
-  const grossMargin = gmv > 0 ? gross / gmv : 0;
+  // 三部分收入
+  const orderCommission = face * orderRate * volume * redeem; // 核销订单佣金
+  const sellingProfit = (price - cost) * volume * redeem;      // 售卖利润（核销部分）
+  const expiredRevenue = price * volume * (1 - redeem);        // 过期纯收入
+  const totalRevenue = gmv + orderCommission;
+  const gross = sellingProfit + expiredRevenue;  // 毛利 = 售卖利润 + 过期收入
+  const grossMargin = totalRevenue > 0 ? gross / totalRevenue : 0;
   const opex = platformFee + adSpend + fixed;
-  const net = gmv - redeemCost - opex;
-  const netMargin = gmv > 0 ? net / gmv : 0;
+  const net = totalRevenue - redeemCost - opex;
+  const netMargin = totalRevenue > 0 ? net / totalRevenue : 0;
   // 盈亏平衡销量
-  const perUnitContrib = price - cost*redeem - price*plat - price*ad;
+  const perUnitContrib = price * (1 - plat - ad) - cost * redeem + face * orderRate * redeem;
   const bepVol = perUnitContrib > 0 ? fixed / perUnitContrib : Infinity;
   return {
     target: targetMargin, price, gmv, redeemCost, platformFee, adSpend, fixed,
-    gross, grossMargin, opex, net, netMargin, bepVol, roi
+    gross, grossMargin, opex, net, netMargin, bepVol,
+    orderCommission, sellingProfit, expiredRevenue, totalRevenue
   };
 }
 function chgScenarioRow(targetMargin) {
@@ -1373,12 +1999,12 @@ function renderGasScenarios() {
       <div class="s-title"><span>${label}</span><span class="s-tag">${tag}</span></div>
       <div class="s-main"><span class="s-price">${fmtY(r.price)}</span><span class="s-unit">${unit}</span></div>
       <div class="s-metrics">
-        <div class="m-row"><span class="m-k">GMV</span><span class="m-v">${fmtM(r.gmv)}</span></div>
+        <div class="m-row"><span class="m-k">总收入</span><span class="m-v">${fmtM(r.totalRevenue)}</span></div>
         <div class="m-row"><span class="m-k">净利额</span><span class="m-v ${cellCls(r.net)}">${fmtM(r.net)}</span></div>
-        <div class="m-row"><span class="m-k">毛利率</span><span class="m-v">${fmtP(r.grossMargin)}</span></div>
-        <div class="m-row"><span class="m-k">净利率</span><span class="m-v ${cellCls(r.netMargin)}">${fmtP(r.netMargin)}</span></div>
+        <div class="m-row"><span class="m-k">售卖利润</span><span class="m-v">${fmtM(r.sellingProfit)}</span></div>
+        <div class="m-row"><span class="m-k">过期收入</span><span class="m-v">${fmtM(r.expiredRevenue)}</span></div>
+        <div class="m-row"><span class="m-k">订单佣金</span><span class="m-v">${fmtM(r.orderCommission)}</span></div>
         <div class="m-row"><span class="m-k">保本销量</span><span class="m-v">${fmtM(r.bepVol)}</span></div>
-        <div class="m-row"><span class="m-k">千川ROI</span><span class="m-v">${r.roi.toFixed(1)}x</span></div>
       </div>
     </div>`;
   document.getElementById('gas-speed').innerHTML =
@@ -1387,7 +2013,7 @@ function renderGasScenarios() {
     card('target','目标','目标方案 (8%)', r8, '元/张');
 
   // 矩阵表
-  const colHeaders = ['目标净利率','售价','GMV','核销成本','平台费','千川','固定','毛利额','毛利率','费用合计','净利额','实际净利率','保本销量'];
+  const colHeaders = ['目标净利率','售价','GMV','订单佣金','总收入','核销成本','平台费','投流','固定','毛利额','毛利率','费用合计','净利额','净利率','保本销量'];
   const ths = colHeaders.map((h,i)=> i===0 ? `<th>${h}</th>` : `<th>${h}</th>`).join('');
   const trs = rows.map(r => {
     const isCurrent = Math.abs(r.target - currentMargin) < 0.0001;
@@ -1395,6 +2021,8 @@ function renderGasScenarios() {
       <td>${(r.target*100).toFixed(0)}%</td>
       <td>${fmtY(r.price)}</td>
       <td>${fmtM(r.gmv)}</td>
+      <td>${fmtM(r.orderCommission)}</td>
+      <td>${fmtM(r.totalRevenue)}</td>
       <td>${fmtM(r.redeemCost)}</td>
       <td>${fmtM(r.platformFee)}</td>
       <td>${fmtM(r.adSpend)}</td>
@@ -1709,27 +2337,34 @@ function renderRentScenarios() {
 function computeGas() {
   const face = getVal('gas.face'), cost = getVal('gas.cost'), price = getVal('gas.price');
   const volume = getVal('gas.volume'), redeem = getVal('gas.redeem')/100;
-  const platformRate = getVal('gas.platform')/100, adRate = getVal('gas.ad')/100, roi = getVal('gas.roi');
+  const platformRate = getVal('gas.platform')/100, adRate = getVal('gas.ad')/100;
+  const orderRate = getVal('gas.orderRate')/100;
   const fixed = getVal('gas.fixed') * 10000;
 
   const gmv = price * volume;
-  const revenue = gmv; // 销售额
   const couponCost = cost * volume * redeem; // 核销成本
   const platformFee = gmv * platformRate;
   const adSpend = gmv * adRate;
-  const adRevenue = adSpend * roi;
-  const netRevenue = revenue - couponCost - platformFee - adSpend - fixed;
-  const grossProfit = revenue - couponCost;
-  const grossMargin = grossProfit / revenue;
-  const netMargin = netRevenue / revenue;
-  const bepVolume = (fixed + adSpend) / (price - cost*redeem - price*platformRate) || 0;
-  const roiOverall = netRevenue / (couponCost + platformFee + adSpend + fixed);
+
+  // 三部分收入
+  const orderCommission = face * orderRate * volume * redeem; // 核销订单佣金
+  const sellingProfit = (price - cost) * volume * redeem;      // 售卖利润（核销部分）
+  const expiredRevenue = price * volume * (1 - redeem);        // 过期纯收入
+  const totalRevenue = gmv + orderCommission;
+
+  const netRevenue = totalRevenue - couponCost - platformFee - adSpend - fixed;
+  const grossProfit = sellingProfit + expiredRevenue; // 毛利 = 售卖利润 + 过期收入
+  const grossMargin = totalRevenue > 0 ? grossProfit / totalRevenue : 0;
+  const netMargin = totalRevenue > 0 ? netRevenue / totalRevenue : 0;
+  const bepVolume = (fixed) / (price * (1 - platformRate - adRate) - cost * redeem + face * orderRate * redeem) || 0;
+  const roiOverall = (couponCost + platformFee + adSpend + fixed) > 0 ? netRevenue / (couponCost + platformFee + adSpend + fixed) : 0;
 
   return {
     label: '加油券包',
-    gmv, revenue, couponCost, platformFee, adSpend, fixed,
+    gmv, revenue: totalRevenue, couponCost, platformFee, adSpend, fixed,
     netRevenue, grossProfit, grossMargin, netMargin, bepVolume, roiOverall,
-    params: { face, cost, price, volume, redeem: redeem*100, platform: platformRate*100, ad: adRate*100, roi, fixed: fixed/10000 }
+    orderCommission, sellingProfit, expiredRevenue, totalRevenue,
+    params: { face, cost, price, volume, redeem: redeem*100, platform: platformRate*100, ad: adRate*100, orderRate: orderRate*100, fixed: fixed/10000 }
   };
 }
 
@@ -1876,43 +2511,59 @@ function makeBar(canvasId, labels, datasets, yLabel) {
 
 /* ============ 渲染业务线图表 ============ */
 function renderGas(r) {
-  renderKpis('gas-kpis', r);
+  // 自定义 KPI（展示三部分收入拆解）
+  const el = document.getElementById('gas-kpis');
+  el.innerHTML = `
+    <div class="kpi"><div class="label">月总收入</div><div class="value">${fmt(r.totalRevenue)}</div><div class="hint">GMV ${fmt(r.gmv)} + 订单佣金 ${fmt(r.orderCommission)}</div></div>
+    <div class="kpi green"><div class="label">售卖利润（核销部分）</div><div class="value ${cls(r.sellingProfit)}">${fmt(r.sellingProfit)}</div><div class="hint">(售价−成本)×核销量</div></div>
+    <div class="kpi ${r.expiredRevenue>=0?'green':'red'}"><div class="label">过期纯收入</div><div class="value">${fmt(r.expiredRevenue)}</div><div class="hint">售价×未核销量</div></div>
+    <div class="kpi purple"><div class="label">核销订单佣金</div><div class="value">${fmt(r.orderCommission)}</div><div class="hint">面值×${r.params.orderRate}%×核销量</div></div>
+    <div class="kpi ${r.netRevenue>=0?'green':'red'}"><div class="label">净利润</div><div class="value ${cls(r.netRevenue)}">${fmt(r.netRevenue)}</div><div class="hint">净利率 ${fmtPct(r.netMargin)}</div></div>
+    <div class="kpi purple"><div class="label">盈亏平衡销量</div><div class="value">${fmt(r.bepVolume)}</div><div class="hint">张/月</div></div>
+  `;
+
   makePie('gas-cost-pie',
     ['核销成本', '平台费', '千川投流', '固定成本'],
     [r.couponCost, r.platformFee, r.adSpend, r.fixed],
     [CHART_COLORS.orange, CHART_COLORS.blue, CHART_COLORS.purple, CHART_COLORS.gray]);
 
-  // 销量敏感性 — 柱状图
+  // 销量敏感性 — 柱状图（含三部分收入）
   const vols = [1000, 3000, 5000, 10000, 20000, 50000, 100000];
   const profits = vols.map(v => {
     const p = r.params;
     const gmv = p.price * v;
-    return (gmv - p.cost*v*p.redeem/100 - gmv*p.platform/100 - gmv*p.ad/100 - p.fixed*10000);
+    const oc = p.face * p.orderRate/100 * v * p.redeem/100;
+    const totalRev = gmv + oc;
+    return (totalRev - p.cost*v*p.redeem/100 - gmv*p.platform/100 - gmv*p.ad/100 - p.fixed*10000);
   });
   makeBar('gas-sens', vols.map(v=>v>=10000?(v/10000)+'万':v),
     [{ label: '净利润', data: profits, backgroundColor: profits.map(p => p >= 0 ? CHART_COLORS.green + '99' : CHART_COLORS.red + '99'), borderColor: profits.map(p => p >= 0 ? CHART_COLORS.green : CHART_COLORS.red), borderWidth: 1, borderRadius: 6 }], '净利润(元)');
 
-  // 售价-利润率曲线 — 渐变填充
+  // 售价-利润率曲线 — 含订单佣金
   const prices = [];
   const margins = [];
   const p = r.params;
   for (let pr = p.cost * p.redeem/100 + 1; pr < p.cost * p.redeem/100 * 5; pr += 2) {
     prices.push(pr.toFixed(0));
     const gmv = pr * p.volume;
-    const net = gmv - p.cost*p.volume*p.redeem/100 - gmv*p.platform/100 - gmv*p.ad/100 - p.fixed*10000;
-    margins.push((net/gmv*100));
+    const oc = p.face * p.orderRate/100 * p.volume * p.redeem/100;
+    const totalRev = gmv + oc;
+    const net = totalRev - p.cost*p.volume*p.redeem/100 - gmv*p.platform/100 - gmv*p.ad/100 - p.fixed*10000;
+    margins.push((net/totalRev*100));
   }
   makeLine('gas-price-margin', prices,
     [{ label: '净利率(%)', data: margins, borderColor: CHART_COLORS.purple, backgroundColor: CHART_COLORS.purple + '22', fill: true, tension: .4, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2.5 }], '净利率(%)');
 
-  // 盈亏平衡 — 面积图
+  // 盈亏平衡 — 面积图（含订单佣金）
   const beVols = [];
   const beProfits = [];
   const step = Math.max(100, Math.floor((r.bepVolume || 1000) / 10));
   for (let v = 0; v <= (r.bepVolume || 1000) * 2; v += step) {
     beVols.push(v);
     const gmv = p.price * v;
-    beProfits.push(gmv - p.cost*v*p.redeem/100 - gmv*p.platform/100 - gmv*p.ad/100 - p.fixed*10000);
+    const oc = p.face * p.orderRate/100 * v * p.redeem/100;
+    const totalRev = gmv + oc;
+    beProfits.push(totalRev - p.cost*v*p.redeem/100 - gmv*p.platform/100 - gmv*p.ad/100 - p.fixed*10000);
   }
   makeLine('gas-be', beVols,
     [{ label: '净利润', data: beProfits, borderColor: CHART_COLORS.green, backgroundColor: CHART_COLORS.green + '22', fill: true, tension: .4, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2.5 }], '净利润(元)');
@@ -2115,7 +2766,7 @@ function loadHistory(id) {
   document.getElementById('gas.redeem').value = p.gas.redeem;
   document.getElementById('gas.platform').value = p.gas.platform;
   document.getElementById('gas.ad').value = p.gas.ad;
-  document.getElementById('gas.roi').value = p.gas.roi;
+  document.getElementById('gas.orderRate').value = p.gas.orderRate || 0.5;
   document.getElementById('gas.fixed').value = p.gas.fixed;
   // 充电
   document.getElementById('chg.price').value = p.charge.price;
@@ -2201,9 +2852,12 @@ let activeGasTier = null; // 当前选中的档位 index，null 表示未选中�
 /* 每档独立存储：face/cost/price 三个值独立保存，切换时恢复 */
 const gasTierState = {};
 GAS_TIERS.forEach((t, i) => {
-  const plat = getVal('gas.platform'), ad = getVal('gas.ad'), margin = getVal('gas.margin');
-  const denom = 1 - plat/100 - ad/100 - margin/100;
-  const sugPrice = denom > 0 ? t.cost / denom : t.cost;
+  const plat = getVal('gas.platform')/100, ad = getVal('gas.ad')/100, margin = getVal('gas.margin')/100;
+  const redeem = getVal('gas.redeem')/100, orderRate = getVal('gas.orderRate')/100;
+  const volume = getVal('gas.volume'), fixed = getVal('gas.fixed') * 10000;
+  const denom = 1 - plat - ad - margin;
+  const numer = t.cost * redeem + (volume > 0 ? fixed / volume : 0) - t.face * orderRate * redeem * (1 - margin);
+  const sugPrice = denom > 0 ? numer / denom : t.cost;
   gasTierState[i] = { face: t.face, cost: t.cost, price: parseFloat(sugPrice.toFixed(2)) };
 });
 
@@ -2218,10 +2872,13 @@ function saveGasTierState(idx) {
 }
 
 /* 按当前公式参数算建议售价（仅供首次初始化与未选中档位的显示参考） */
-function gasFormulaPrice(cost) {
-  const plat = getVal('gas.platform'), ad = getVal('gas.ad'), margin = getVal('gas.margin');
-  const denom = 1 - plat/100 - ad/100 - margin/100;
-  return denom > 0 ? cost / denom : cost;
+function gasFormulaPrice(cost, face) {
+  const plat = getVal('gas.platform')/100, ad = getVal('gas.ad')/100, margin = getVal('gas.margin')/100;
+  const redeem = getVal('gas.redeem')/100, orderRate = getVal('gas.orderRate')/100;
+  const volume = getVal('gas.volume'), fixed = getVal('gas.fixed') * 10000;
+  const denom = 1 - plat - ad - margin;
+  const numer = cost * redeem + (volume > 0 ? fixed / volume : 0) - (face || 0) * orderRate * redeem * (1 - margin);
+  return denom > 0 ? numer / denom : cost;
 }
 
 function renderGasTiers() {
