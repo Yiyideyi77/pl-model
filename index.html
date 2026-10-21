@@ -858,8 +858,9 @@
         <div class="section-divider">运营参数</div>
         <div class="field-group">
           <div class="field with-suffix" data-suffix="元">
-            <label>券面值</label>
-            <input type="number" class="num-input pct" id="gas.face" value="200" min="1" autocomplete="off">
+            <label>优惠金额</label>
+            <input type="number" class="num-input pct" id="gas.face" value="50" min="1" autocomplete="off">
+            <div class="hint">如200-50券，优惠金额=50</div>
           </div>
           <div class="field with-suffix" data-suffix="张">
             <label>月销量</label>
@@ -2517,7 +2518,7 @@ function renderGas(r) {
     <div class="kpi"><div class="label">月总收入</div><div class="value">${fmt(r.totalRevenue)}</div><div class="hint">GMV ${fmt(r.gmv)} + 订单佣金 ${fmt(r.orderCommission)}</div></div>
     <div class="kpi green"><div class="label">售卖利润（核销部分）</div><div class="value ${cls(r.sellingProfit)}">${fmt(r.sellingProfit)}</div><div class="hint">(售价−成本)×核销量</div></div>
     <div class="kpi ${r.expiredRevenue>=0?'green':'red'}"><div class="label">过期纯收入</div><div class="value">${fmt(r.expiredRevenue)}</div><div class="hint">售价×未核销量</div></div>
-    <div class="kpi purple"><div class="label">核销订单佣金</div><div class="value">${fmt(r.orderCommission)}</div><div class="hint">面值×${r.params.orderRate}%×核销量</div></div>
+    <div class="kpi purple"><div class="label">核销订单佣金</div><div class="value">${fmt(r.orderCommission)}</div><div class="hint">优惠金额×${r.params.orderRate}%×核销量</div></div>
     <div class="kpi ${r.netRevenue>=0?'green':'red'}"><div class="label">净利润</div><div class="value ${cls(r.netRevenue)}">${fmt(r.netRevenue)}</div><div class="hint">净利率 ${fmtPct(r.netMargin)}</div></div>
     <div class="kpi purple"><div class="label">盈亏平衡销量</div><div class="value">${fmt(r.bepVolume)}</div><div class="hint">张/月</div></div>
   `;
@@ -2889,7 +2890,7 @@ function renderGasTiers() {
     return `
     <div class="tier-card ${activeGasTier === i ? 'active' : ''}" data-idx="${i}">
       <div class="t-name">${t.name}</div>
-      <div class="t-cost">面值 ${s.face} · 成本 ${s.cost}</div>
+      <div class="t-cost">优惠 ${s.face} · 成本 ${s.cost}</div>
       <div class="t-price">售 ${s.price}元</div>
     </div>`;
   }).join('');
@@ -2943,7 +2944,7 @@ function updateCurrentTierIndicator() {
     <span class="ti-dot"></span>
     <span class="ti-text">
       当前优惠券：<span class="ti-name">${t.name}</span>
-      （面值 ${s.face} · 成本 ${s.cost} · 售价 ${s.price} 元）
+      （优惠 ${s.face} · 成本 ${s.cost} · 售价 ${s.price} 元）
     </span>`;
 }
 
