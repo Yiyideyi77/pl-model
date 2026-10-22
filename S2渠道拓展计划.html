@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>S2 加油券 toC 渠道拓展计划 · 2026.10 - 2027.03</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#f4f6fb; --panel:#ffffff; --ink:#0f172a; --muted:#64748b;
+    --accent:#2563eb; --accent-2:#7c3aed; --line:#e5e7eb;
+    --douyin:#0ea5e9; --xiaohongshu:#ef4444; --shipinhao:#16a34a;
+    --warn:#f59e0b; --ok:#10b981;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.55 -apple-system,"PingFang SC","Helvetica Neue",sans-serif;color:var(--ink);background:var(--bg)}
+  .wrap{max-width:1280px;margin:0 auto;padding:24px}
+  header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+  h1{margin:0;font-size:22px;letter-spacing:.5px}
+  h1 small{display:block;color:var(--muted);font-size:13px;font-weight:400;margin-top:4px}
+  .badge{display:inline-block;padding:4px 10px;border-radius:999px;background:#eef2ff;color:var(--accent);font-size:12px;font-weight:500}
+  .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+  .card{background:var(--panel);border-radius:14px;padding:16px 18px;box-shadow:0 1px 3px rgba(15,23,42,.04)}
+  .card h3{margin:0 0 6px;font-size:12px;color:var(--muted);font-weight:500}
+  .card .v{font-size:24px;font-weight:600}
+  .card .sub{font-size:12px;color:var(--muted);margin-top:4px}
+  .grid{display:grid;grid-template-columns:1.2fr 1fr;gap:16px;margin-bottom:20px}
+  @media(max-width:900px){.grid,.kpi{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border-radius:14px;padding:18px 20px;box-shadow:0 1px 3px rgba(15,23,42,.04)}
+  .panel h2{margin:0 0 14px;font-size:15px;display:flex;align-items:center;gap:8px}
+  .panel h2::before{content:"";width:3px;height:14px;background:linear-gradient(var(--accent),var(--accent-2));border-radius:2px}
+  .gantt{overflow-x:auto}
+  table.gantt{width:100%;border-collapse:collapse;font-size:13px;min-width:640px}
+  .gantt th,.gantt td{padding:10px 8px;text-align:left;border-bottom:1px solid var(--line)}
+  .gantt th{color:var(--muted);font-weight:500;font-size:12px}
+  .gantt .bar{position:relative;height:22px;border-radius:6px;background:#f1f5f9;overflow:hidden}
+  .gantt .seg{position:absolute;top:0;bottom:0;border-radius:6px;font-size:11px;color:#fff;display:flex;align-items:center;padding:0 8px;white-space:nowrap;overflow:hidden}
+  .channel-tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500;color:#fff}
+  .ch-dy{background:var(--douyin)} .ch-xhs{background:var(--xiaohongshu)} .ch-sph{background:var(--shipinhao)}
+  .ms{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:8px}
+  .ms div{font-size:11px;color:var(--muted);text-align:center;padding:4px 0}
+  .milestone{width:100%;border-collapse:collapse;font-size:13px}
+  .milestone th,.milestone td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
+  .milestone th{color:var(--muted);font-weight:500;font-size:12px;text-align:left}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500}
+  .p-dy{background:#e0f2fe;color:#0369a1}.p-xhs{background:#fee2e2;color:#b91c1c}.p-sph{background:#dcfce7;color:#15803d}
+  .risk{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .risk .item{padding:12px;border-radius:10px;background:#fffbeb;border-left:3px solid var(--warn);font-size:13px}
+  .risk .item b{display:block;margin-bottom:4px;color:#92400e}
+  .chart-wrap{position:relative;height:320px}
+  .legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:8px;flex-wrap:wrap}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+  .switch{display:flex;gap:6px;font-size:12px;color:var(--muted)}
+  .switch button{border:1px solid var(--line);background:#fff;color:var(--ink);padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px}
+  .switch button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  footer{color:var(--muted);font-size:12px;text-align:center;margin-top:24px;padding:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>S2 加油券 toC 渠道拓展计划
+      <small>周期 2026.10 — 2027.03 ｜ 品类：虚拟商品券 ｜ 目标 GMV 3500W ｜ 利润率 1%–3%</small>
+    </h1>
+    <div><span class="badge">抖音 · 开拓中</span> <span class="badge" style="background:#fef2f2;color:#b91c1c">小红书 · 筹备</span> <span class="badge" style="background:#dcfce7;color:#15803d">视频号 · 铺垫</span></div>
+  </header>
+
+  <!-- KPI -->
+  <div class="kpi">
+    <div class="card"><h3>总 GMV 目标</h3><div class="v">3,500<span style="font-size:14px;color:var(--muted)"> W</span></div><div class="sub">6 个月累计 · 三渠道合计</div></div>
+    <div class="card"><h3>目标利润率</h3><div class="v" style="color:var(--ok)">1% – 3%</div><div class="sub">净利润率 · 含平台费/投流/佣金</div></div>
+    <div class="card"><h3>预估净利润区间</h3><div class="v">35 – 105<span style="font-size:14px;color:var(--muted)"> W</span></div><div class="sub">按 GMV × 利润率区间测算</div></div>
+    <div class="card"><h3>渠道覆盖</h3><div class="v">3<span style="font-size:14px;color:var(--muted)"> 个</span></div><div class="sub">1 主拓 · 1 次主 · 1 验证</div></div>
+  </div>
+
+  <!-- 图表行 -->
+  <div class="grid">
+    <div class="panel">
+      <h2>月度 GMV 目标拆解（按渠道堆叠）</h2>
+      <div class="switch">
+        <button class="on" data-mode="stack">堆叠视图</button>
+        <button data-mode="line">趋势折线</button>
+      </div>
+      <div class="chart-wrap"><canvas id="gmvChart"></canvas></div>
+      <div class="legend">
+        <span><i style="background:var(--douyin)"></i>抖音</span>
+        <span><i style="background:var(--xiaohongshu)"></i>小红书</span>
+        <span><i style="background:var(--shipinhao)"></i>视频号</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>GMV 渠道占比 · 利润率敏感性</h2>
+      <div class="chart-wrap" style="height:240px"><canvas id="pieChart"></canvas></div>
+      <div style="margin-top:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:12px;text-align:center">
+        <div style="padding:8px;background:#f8fafc;border-radius:8px"><b style="color:var(--douyin)">抖音</b><div>2500W · 71%</div></div>
+        <div style="padding:8px;background:#f8fafc;border-radius:8px"><b style="color:var(--xiaohongshu)">小红书</b><div>750W · 21%</div></div>
+        <div style="padding:8px;background:#f8fafc;border-radius:8px"><b style="color:var(--shipinhao)">视频号</b><div>250W · 7%</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 甘特 -->
+  <div class="panel" style="margin-bottom:20px">
+    <h2>渠道拓展甘特图 · 阶段 × 关键动作</h2>
+    <div class="gantt">
+      <table class="gantt">
+        <thead>
+          <tr><th style="width:140px">渠道</th><th>阶段</th><th>10月</th><th>11月</th><th>12月</th><th>1月</th><th>2月</th><th>3月</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="channel-tag ch-dy">抖音</span></td>
+            <td>基建 → 上线 → 爆发 → 稳态</td>
+            <td><div class="bar"><div class="seg" style="left:0;width:100%;background:#bae6fd">合规+达人储备</div></div></td>
+            <td><div class="bar"><div class="seg" style="left:0;width:100%;background:#7dd3fc">11/25 上线</div></div></td>
+            <td><div class="bar"><div class="seg" style="left:0;width:100%;background:var(--douyin)">双12放量</div></div></td>
+            <td><div class="bar"><div class="seg" style="left:0;width:100%;background:#0284c7">年货节峰值</div></div></td>
+            <td><div class="bar"><div class="seg" style="left:0;width:100%;background:#0369a1">春节返场</div></div></td>
+            <td><div class="bar"><div class="seg" style="left:0;width:100%;background:#075985">稳态+SOP沉淀</div></div></td>
+          </tr>
+          <tr>
+            <td><span class="channel-tag ch-xhs">小红书</span></td>
+            <td>种草 → 起量 → 转化</td>
+            <td><div class="bar"><div class="seg" style="left:0;width:100%;background:#fecaca">账号基建</div></div></td>
+            <td><div class="bar"><div class="seg" style="left:0;width:100%;background:#fca5a5">KOC种草</div></div></td>
+            <td><div class="bar"><div class="seg" style="left:0;width:100%;background:var(--xiaohongshu)">双12起量</div></div></td>
+            <td><div class="bar"><div class="seg" style="left:0;width:100%;background:#dc2626">年货节爆发</div></div></td>
+            <td><div class="bar"><div class="seg" style="left:0;width:100%;background:#b91c1c">稳定转化</div></div></td>
+            <td><div class="bar"><div class="seg" style="left:0;width:100%;background:#991b1b">矩阵复制</div></div></td>
+          </tr>
+          <tr>
+            <td><span class="channel-tag ch-sph">视频号</span></td>
+            <td>铺垫 → 验证 → 起量</td>
+            <td><div class="bar"><div class="seg" style="left:0;width:100%;background:#bbf7d0">账号矩阵</div></div></td>
+            <td><div class="bar"><div class="seg" style="left:0;width:100%;background:#86efac">内容储备</div></div></td>
+            <td><div class="bar"><div class="seg" style="left:0;width:100%;background:#4ade80">小店打通</div></div></td>
+            <td><div class="bar"><div class="seg" style="left:0;width:100%;background:var(--shipinhao)">直播试点</div></div></td>
+            <td><div class="bar"><div class="seg" style="left:0;width:100%;background:#15803d">私域沉淀</div></div></td>
+            <td><div class="bar"><div class="seg" style="left:0;width:100%;background:#166534">规模验证</div></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="ms"><div>10月</div><div>11月</div><div>12月</div><div>1月</div><div>2月</div><div>3月</div></div>
+  </div>
+
+  <!-- 里程碑 -->
+  <div class="panel" style="margin-bottom:20px">
+    <h2>关键里程碑 · 动作 · 产出</h2>
+    <table class="milestone">
+      <thead><tr><th style="width:70px">月份</th><th style="width:100px">渠道</th><th>关键动作</th><th>核心产出 / 指标</th></tr></thead>
+      <tbody>
+        <tr><td>10月</td><td><span class="pill p-dy">抖音</span></td>
+          <td>推进虚拟商品类目资质审核、达人签约 20+ 储备、店铺装修与上架准备</td>
+          <td>GMV 0（对接中）· 11/25 上线倒计时</td></tr>
+        <tr><td>11月</td><td><span class="pill p-dy">抖音</span></td>
+          <td>11/25 上线软启动、达人直播联调、店铺跑通首单</td>
+          <td>GMV 0（软启动计入 12 月）· 上线 checklist 完成</td></tr>
+        <tr><td>10月</td><td><span class="pill p-xhs">小红书</span></td>
+          <td>账号矩阵搭建（官号+2个子号）、商品卡上架、种草内容模板定型</td>
+          <td>内容 SOP · 种子笔记 50 篇</td></tr>
+        <tr><td>10月</td><td><span class="pill p-sph">视频号</span></td>
+          <td>账号注册、小店开通申请、内容风格测试（车主日常向）</td>
+          <td>账号矩阵 ≥3 个 · 内容试发 30 条</td></tr>
+
+        <tr><td>11月</td><td><span class="pill p-dy">抖音</span></td>
+          <td>11/25 上线软启动、达人直播联调、店铺跑通首单</td>
+          <td>GMV 0（软启动计入 12 月）· 上线 checklist 完成</td></tr>
+        <tr><td>11月</td><td><span class="pill p-xhs">小红书</span></td>
+          <td>铺 100+ KOC 笔记、挂载商品卡、跑通"种草→站内成交"链路</td>
+          <td>月 GMV 100W · 笔记爆文率 ≥8%</td></tr>
+        <tr><td>11月</td><td><span class="pill p-sph">视频号</span></td>
+          <td>内容日更、私域引流钩子设计、首批直播带货测试</td>
+          <td>粉丝 ≥5k · 直播 GMV 试水 20W</td></tr>
+
+        <tr><td>12月</td><td><span class="pill p-dy">抖音</span></td>
+          <td>正式放量首月：双12 大促资源位、达人矩阵 20+ 开播、爆款素材 AB 测</td>
+          <td>月 GMV 450W · 上线后首月利润率验证 ≥1%</td></tr>
+        <tr><td>12月</td><td><span class="pill p-xhs">小红书</span></td>
+          <td>双12 联合 KOL 专场、"年货囤券"主题、搜索词卡位</td>
+          <td>月 GMV 250W</td></tr>
+        <tr><td>12月</td><td><span class="pill p-sph">视频号</span></td>
+          <td>小店正式上架、打通企微私域、年货节预热</td>
+          <td>月 GMV 50W · 链路跑通</td></tr>
+
+        <tr><td>1月</td><td><span class="pill p-dy">抖音</span></td>
+          <td>年货节 All in、"春节加油券"主题 IP、品牌自播常态化、头部达人坑位 2+</td>
+          <td>月 GMV 850W · 峰值周 250W+</td></tr>
+        <tr><td>1月</td><td><span class="pill p-xhs">小红书</span></td>
+          <td>年货节爆发、"自驾回家"场景种草、爆文批量复制</td>
+          <td>月 GMV 350W</td></tr>
+        <tr><td>1月</td><td><span class="pill p-sph">视频号</span></td>
+          <td>直播常态化（周 3 场）、企微社群推券、老客复购</td>
+          <td>月 GMV 100W</td></tr>
+
+        <tr><td>2月</td><td><span class="pill p-dy">抖音</span></td>
+          <td>春节返场、春运返程场景、达人复盘汰换</td>
+          <td>月 GMV 650W</td></tr>
+        <tr><td>2月</td><td><span class="pill p-xhs">小红书</span></td>
+          <td>节后稳定转化、长尾笔记优化、沉淀高转化关键词</td>
+          <td>月 GMV 200W</td></tr>
+        <tr><td>2月</td><td><span class="pill p-sph">视频号</span></td>
+          <td>私域复购活动、社群裂变、ROI 验证</td>
+          <td>月 GMV 130W</td></tr>
+
+        <tr><td>3月</td><td><span class="pill p-dy">抖音</span></td>
+          <td>SOP 沉淀、达人分级管理、Q1 复盘与 S3 规划</td>
+          <td>月 GMV 550W · 输出《抖音运营手册》</td></tr>
+        <tr><td>3月</td><td><span class="pill p-xhs">小红书</span></td>
+          <td>矩阵复制（第二批次账号）、内容资产归档</td>
+          <td>月 GMV 200W · 输出《小红书打法》</td></tr>
+        <tr><td>3月</td><td><span class="pill p-sph">视频号</span></td>
+          <td>规模验证结论、是否 S3 加码的决策依据</td>
+          <td>月 GMV 200W · 决策报告</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 风险 -->
+  <div class="panel">
+    <h2>关键风险与预案</h2>
+    <div class="risk">
+      <div class="item"><b>抖音上线时间风险（11/25）</b>11/25 上线 → 12 月才放量，错过双11，双12 仅 17 天预热窗口。<br/>▸ 预案：达人 20+ 与素材 10 月底前全部储备完成，上线即日开播；双12 目标降级为"跑通模型"，GMV 主力押 1 月年货节。</div>
+      <div class="item"><b>虚拟商品类目资质</b>抖音/视频号对"加油券"类目审核严，存在驳回风险。<br/>▸ 预案：提前 2 周提交资质，准备"成品油零售"备选类目；小红书用"商品卡+笔记"绕过直播资质门槛。</div>
+      <div class="item"><b>利润率被投流侵蚀</b>公域投流 ROI 波动易击穿 1% 下限。<br/>▸ 预案：设置单渠道日预算熔断（ROI<1.2 自动停投）；视频号主攻私域免费流量兜底。</div>
+      <div class="item"><b>核销率低于预期</b>当前测算基准 70%，若渠道用户核销<50% 利润模型崩盘。<br/>▸ 预案：渠道端强推"短有效期券"（30 天）+ 到期前 3 次 push 提醒；按渠道分档定价。</div>
+      <div class="item"><b>平台政策变动</b>抖音/小红书对虚拟券的佣金、结算周期可能调整。<br/>▸ 预案：每渠道保留 20% GMV 给"自有小程序"承接，做风险分散。</div>
+      <div class="item"><b>春节档达人档期争夺</b>年货节头部达人坑位紧张。<br/>▸ 预案：11 月底前锁定 2 个头部坑位 + 预付；备选垂类车主达人矩阵。</div>
+      <div class="item"><b>视频号起量不及预期</b>铺垫期流量冷启动慢。<br/>▸ 预案：3 月复盘若 GMV<300W，S3 收缩为"私域承接渠道"定位，不再追加投流。</div>
+    </div>
+  </div>
+
+  <footer>数据口径：GMV 按券面值×核销口径计；利润率 = (售卖利润 + 过期收入 + 订单佣金 − 投流 − 平台费 − 佣金) / GMV ｜ 制表：伽萝 · 2026.10</footer>
+</div>
+
+<script>
+const months=['10月','11月','12月','1月','2月','3月'];
+const dy=[0,0,450,850,650,550];   // 抖音 合计 2500W（11/25 上线，10-11 月为 0）
+const xhs=[20,65,160,225,125,155]; // 小红书 合计 750W
+const sph=[5,15,35,65,60,70];     // 视频号 合计 250W
+
+let mode='stack';
+const ctx=document.getElementById('gmvChart').getContext('2d');
+function mkData(stacked){
+  return {
+    labels:months,
+    datasets:[
+      {label:'抖音',data:dy,backgroundColor:'#0ea5e9',borderColor:'#0ea5e9',tension:.4,fill:stacked,borderWidth:2,stack:'s'},
+      {label:'小红书',data:xhs,backgroundColor:'#ef4444',borderColor:'#ef4444',tension:.4,fill:stacked,borderWidth:2,stack:'s'},
+      {label:'视频号',data:sph,backgroundColor:'#16a34a',borderColor:'#16a34a',tension:.4,fill:stacked,borderWidth:2,stack:'s'}
+    ]
+  };
+}
+const gmvChart=new Chart(ctx,{
+  type:'bar',
+  data:mkData(true),
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw+'W'}}},
+    scales:{
+      x:{stacked:true,grid:{display:false}},
+      y:{stacked:true,grid:{color:'#f1f5f9'},ticks:{callback:v=>v+'W'},title:{display:true,text:'GMV（万元）',font:{size:11}}}
+    }
+  }
+});
+document.querySelectorAll('.switch button').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('.switch button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    mode=b.dataset.mode;
+    const stacked=mode==='stack';
+    gmvChart.config.type=stacked?'bar':'line';
+    gmvChart.data=mkData(stacked);
+    gmvChart.options.scales.x.stacked=stacked;
+    gmvChart.options.scales.y.stacked=stacked;
+    if(!stacked){
+      gmvChart.data.datasets.forEach(d=>{d.fill=false;d.borderWidth=3;d.pointRadius=5;d.pointBackgroundColor=d.borderColor});
+    }
+    gmvChart.update();
+  };
+});
+
+new Chart(document.getElementById('pieChart'),{
+  type:'doughnut',
+  data:{
+    labels:['抖音 2500W','小红书 750W','视频号 250W'],
+    datasets:[{data:[2500,750,250],backgroundColor:['#0ea5e9','#ef4444','#16a34a'],borderWidth:3,borderColor:'#fff'}]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,cutout:'62%',
+    plugins:{legend:{position:'bottom',labels:{font:{size:12},padding:14}},tooltip:{callbacks:{label:c=>c.label+' ('+Math.round(c.raw/35*10)/10+'%)'}}}
+  }
+});
+</script>
+</body>
+</html>
