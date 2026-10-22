@@ -80,6 +80,12 @@
     color: #ffffff; background: var(--accent);
     box-shadow: 0 2px 4px #2563eb44;
   }
+  .s2-btn {
+    padding: 8px 14px; cursor: pointer; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--panel); color: var(--text); font-size: 12px; font-weight: 500; transition: all .2s ease;
+  }
+  .s2-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .s2-btn.on { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 2px 4px #2563eb44; }
 
   .grid { display: flex; flex-direction: column; gap: 20px; }
   .panel {
@@ -784,8 +790,8 @@
 
   <div class="tabs">
     <div class="tab active" data-tab="gas">⛽ 加油券包</div>
+    <div class="tab" data-tab="s2">🗓️ S2 规划</div>
     <div class="tab" data-tab="charge">🔌 充电服务</div>
-    <div class="tab" data-tab="rent">🚗 租车业务</div>
     <div class="tab" data-tab="compare">📊 场景对比</div>
     <div class="tab" data-tab="history">📁 历史记录</div>
     <div class="tab" data-tab="external">🎯 端外售券</div>
@@ -1048,103 +1054,6 @@
     </div>
   </div>
 
-  <!-- ============ 租车业务 ============ -->
-  <div class="section" id="sec-rent">
-    <div class="grid">
-      <div class="kpis" id="rent-kpis"></div>
-
-      <div class="panel">
-        <h3>参数设置</h3>
-
-        <div class="formula-box">
-          <div class="f-title">日均租金定价公式（实时联动）</div>
-          <div class="formula-expr" id="rent.formula">
-            <span class="op">P =</span>
-            <span class="v" id="rent.f.cost">110</span>
-            <span class="op">÷ ( 1 −</span>
-            <span class="v" id="rent.f.plat">3%</span>
-            <span class="op">−</span>
-            <span class="v" id="rent.f.comp">5%</span>
-            <span class="op">−</span>
-            <span class="v" id="rent.f.margin">12%</span>
-            <span class="op">) =</span>
-            <span class="result" id="rent.f.result">137.50 元/天</span>
-          </div>
-          <div class="formula-sub" id="rent.f.sub">
-            分母 = <span class="ok">0.80</span> · 当前售价偏差：<span class="warn">待计算</span>
-          </div>
-        </div>
-
-        <div class="price-mode">
-          <span class="mode-label">定价模式：</span>
-          <label><input type="radio" name="rent.mode" value="formula" checked> 公式联动</label>
-          <label><input type="radio" name="rent.mode" value="manual"> 手动租金</label>
-        </div>
-
-        <div class="section-divider">成本参数（代入公式）</div>
-        <div class="field-group-3">
-          <div class="field with-suffix" data-suffix="元/天">
-            <label>日均成本</label>
-            <input type="number" class="num-input pct" id="rent.cost" value="110" min="0" step="1">
-          </div>
-          <div class="field with-suffix" data-suffix="%">
-            <label>平台费率</label>
-            <input type="number" class="num-input pct" id="rent.plat" value="3" min="0" max="100" step="0.1">
-          </div>
-          <div class="field with-suffix" data-suffix="%">
-            <label>客诉赔付率</label>
-            <input type="number" class="num-input pct" id="rent.comp" value="5" min="0" max="100" step="0.1">
-          </div>
-        </div>
-        <div class="field-group">
-          <div class="field with-suffix" data-suffix="%">
-            <label>目标净利润率</label>
-            <input type="number" class="num-input pct" id="rent.margin" value="12" min="0" max="100" step="0.5">
-          </div>
-          <div class="field with-suffix" data-suffix="元/天">
-            <label>日均租金</label>
-            <input type="number" class="num-input pct" id="rent.price" value="137.5" min="0" step="1">
-            <div class="hint" id="rent.price.hint">公式自动填入</div>
-          </div>
-        </div>
-
-        <div class="section-divider">运营参数</div>
-        <div class="field-group-3">
-          <div class="field with-suffix" data-suffix="单">
-            <label>月订单数</label>
-            <input type="number" class="num-input pct" id="rent.vol" value="3000" min="0" step="50">
-          </div>
-          <div class="field with-suffix" data-suffix="天">
-            <label>平均租期</label>
-            <input type="number" class="num-input pct" id="rent.days" value="3" min="0.5" step="0.5">
-          </div>
-          <div class="field with-suffix" data-suffix="%">
-            <label>车辆出租率</label>
-            <input type="number" class="num-input pct" id="rent.util" value="70" min="0" max="100" step="1">
-          </div>
-        </div>
-        <div class="field with-suffix" data-suffix="万">
-          <label>月固定成本</label>
-          <input type="number" class="num-input pct" id="rent.fix" value="15" min="0" step="0.1">
-        </div>
-      </div>
-
-      <div class="charts">
-        <div class="chart-box"><div class="chart-title">成本结构占比</div><canvas id="rent-cost-pie"></canvas></div>
-        <div class="chart-box"><div class="chart-title">订单量 vs 利润敏感性</div><canvas id="rent-sens"></canvas></div>
-        <div class="chart-box"><div class="chart-title">出租率 vs 利润曲线</div><canvas id="rent-util-margin"></canvas></div>
-        <div class="chart-box"><div class="chart-title">客诉赔付影响</div><canvas id="rent-comp"></canvas></div>
-      </div>
-    </div>
-
-    <!-- 方案测算面板 -->
-    <div class="biz-scenario" id="rent-scenario">
-      <h3>📐 方案测算与可调控区间 <span class="sub">基于当前参数反推多档利润率方案</span></h3>
-      <div class="range-bar" id="rent-range"></div>
-      <div class="speed-cards" id="rent-speed"></div>
-      <div class="scenario-table-wrap" id="rent-matrix"></div>
-    </div>
-  </div>
 
   <!-- ============ 场景对比 ============ -->
   <div class="section" id="sec-compare">
@@ -1349,6 +1258,21 @@
     </div>
   </div>
 
+
+  <!-- ============ S2 规划 ============ -->
+  <div class="section" id="sec-s2">
+    <div class="panel">
+      <h3>🗓️ S2 加油券 toC 渠道拓展规划 <span style="font-size:12px;color:var(--muted);font-weight:400">2026.10 – 2027.03 ｜ 目标 GMV 3500W · 利润率 1%–3%</span></h3>
+      <div class="note" style="margin-bottom:10px">抖音 2500W（71%，11/25 上线）· 小红书 750W（21%）· 视频号 250W（7%）｜ 下方三个交互模型已部署 GitHub Pages，可在本页直接切换查看</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px" id="s2-btns">
+        <button class="s2-btn" data-src="https://yiyideyi77.github.io/pl-model/S2%E6%B8%A0%E9%81%93%E6%8B%93%E5%B1%95%E8%AE%A1%E5%88%92.html">📈 渠道拓展计划（甘特·里程碑·风险）</button>
+        <button class="s2-btn" data-src="https://yiyideyi77.github.io/pl-model/S2%E6%8A%95%E6%B5%81%E4%B8%8E%E6%A1%A3%E4%BD%8D%E6%B5%8B%E7%AE%97.html">💰 投流与档位测算（ROI·损益·13档）</button>
+        <button class="s2-btn" data-src="https://yiyideyi77.github.io/pl-model/%E6%8A%96%E9%9F%B3%E4%B8%8A%E7%BA%BF%E5%80%92%E6%8E%92Checklist.html">✅ 抖音上线倒排 Checklist（33天40项）</button>
+      </div>
+      <iframe id="s2-frame" src="https://yiyideyi77.github.io/pl-model/S2%E6%B8%A0%E9%81%93%E6%8B%93%E5%B1%95%E8%AE%A1%E5%88%92.html" style="width:100%;height:800px;border:1px solid var(--border);border-radius:10px;background:#fff" title="S2规划"></iframe>
+      <div style="margin-top:8px;font-size:12px;color:var(--muted)">当前模型：<a id="s2-open" href="https://yiyideyi77.github.io/pl-model/S2%E6%B8%A0%E9%81%93%E6%8B%93%E5%B1%95%E8%AE%A1%E5%88%92.html" target="_blank" style="color:var(--accent)">在新窗口打开</a></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -1820,6 +1744,7 @@ function updateChgFormula() {
 }
 
 function updateRentFormula() {
+  if (!document.getElementById('rent.cost')) return; // 租车业务已下线
   const cost = getVal('rent.cost'), plat = getVal('rent.plat'), comp = getVal('rent.comp'), margin = getVal('rent.margin');
   const denom = 1 - plat/100 - comp/100 - margin/100;
   const priceEl = document.getElementById('rent.price');
@@ -2644,10 +2569,8 @@ function renderRent(r) {
 function computeAll() {
   renderGas(computeGas());
   renderCharge(computeCharge());
-  renderRent(computeRent());
   renderGasScenarios();
   renderChgScenarios();
-  renderRentScenarios();
   renderComboModule();
   if (document.querySelector('.tab[data-tab=compare]').classList.contains('active')) renderCompare();
 }
@@ -2655,10 +2578,10 @@ function computeAll() {
 /* ============ 场景对比 ============ */
 function saveScenario() {
   const name = document.getElementById('scenarioName').value.trim() || ('场景 ' + (scenarios.length + 1));
-  const g = computeGas(), c = computeCharge(), r = computeRent();
+  const g = computeGas(), c = computeCharge();
   scenarios.push({
     name, time: new Date().toLocaleString('zh-CN'),
-    gas: g, charge: c, rent: r
+    gas: g, charge: c
   });
   if (scenarios.length > 6) scenarios.shift();
   document.getElementById('scenarioName').value = '';
@@ -2678,12 +2601,11 @@ function renderCompare() {
         <div class="sc-name">${s.name} <span style="color:var(--muted);font-size:11px;font-weight:400">${s.time}</span></div>
         <div class="sc-row"><span class="k"><span class="badge gas">加油</span> 净利润</span><span class="v ${cls(s.gas.netRevenue)}">${fmt(s.gas.netRevenue)}</span></div>
         <div class="sc-row"><span class="k"><span class="badge charge">充电</span> 净利润</span><span class="v ${cls(s.charge.netRevenue)}">${fmt(s.charge.netRevenue)}</span></div>
-        <div class="sc-row"><span class="k"><span class="badge rent">租车</span> 净利润</span><span class="v ${cls(s.rent.netRevenue)}">${fmt(s.rent.netRevenue)}</span></div>
         <div class="sc-row" style="border-top:1px solid var(--border);margin-top:6px;padding-top:8px">
           <span class="k"><b>合计净利润</b></span>
-          <span class="v ${cls(s.gas.netRevenue+s.charge.netRevenue+s.rent.netRevenue)}">${fmt(s.gas.netRevenue+s.charge.netRevenue+s.rent.netRevenue)}</span>
+          <span class="v ${cls(s.gas.netRevenue+s.charge.netRevenue)}">${fmt(s.gas.netRevenue+s.charge.netRevenue)}</span>
         </div>
-        <div class="sc-row"><span class="k">加权净利率</span><span class="v">${fmtPct((s.gas.netRevenue+s.charge.netRevenue+s.rent.netRevenue)/(s.gas.revenue+s.charge.revenue+s.rent.revenue))}</span></div>
+        <div class="sc-row"><span class="k">加权净利率</span><span class="v">${fmtPct((s.gas.netRevenue+s.charge.netRevenue)/(s.gas.revenue+s.charge.revenue))}</span></div>
       </div>
     `).join('');
   }
@@ -2694,13 +2616,11 @@ function renderCompare() {
     makeBar('cmp-profit', labels, [
       { label: '加油', data: scenarios.map(s => s.gas.netRevenue), backgroundColor: CHART_COLORS.orange + 'cc', borderRadius: 6 },
       { label: '充电', data: scenarios.map(s => s.charge.netRevenue), backgroundColor: CHART_COLORS.green + 'cc', borderRadius: 6 },
-      { label: '租车', data: scenarios.map(s => s.rent.netRevenue), backgroundColor: CHART_COLORS.purple + 'cc', borderRadius: 6 }
     ], '净利润(元)');
 
     makeBar('cmp-margin', labels, [
       { label: '加油净利率', data: scenarios.map(s => s.gas.netMargin*100), backgroundColor: CHART_COLORS.orange + 'cc', borderRadius: 6 },
       { label: '充电净利率', data: scenarios.map(s => s.charge.netMargin*100), backgroundColor: CHART_COLORS.green + 'cc', borderRadius: 6 },
-      { label: '租车净利率', data: scenarios.map(s => s.rent.netMargin*100), backgroundColor: CHART_COLORS.purple + 'cc', borderRadius: 6 }
     ], '净利率(%)');
   } else {
     if (charts['cmp-profit']) { charts['cmp-profit'].destroy(); charts['cmp-profit'] = null; }
@@ -2718,12 +2638,12 @@ function persistHistory() {
 }
 
 function addToHistory() {
-  const g = computeGas(), c = computeCharge(), r = computeRent();
+  const g = computeGas(), c = computeCharge();
   historyStore.unshift({
     id: Date.now(),
     time: new Date().toLocaleString('zh-CN'),
-    gas: g, charge: c, rent: r,
-    params: { gas: g.params, charge: c.params, rent: r.params }
+    gas: g, charge: c,
+    params: { gas: g.params, charge: c.params }
   });
   if (historyStore.length > 50) historyStore.pop();
   persistHistory();
@@ -2739,7 +2659,7 @@ function renderHistory() {
     <div class="hist-item">
       <div class="h-info">
         <div class="h-name">${new Date(h.id).toLocaleString('zh-CN')}</div>
-        <div class="h-meta">加油净利 ${fmt(h.gas.netRevenue)} · 充电 ${fmt(h.charge.netRevenue)} · 租车 ${fmt(h.rent.netRevenue)}</div>
+        <div class="h-meta">加油净利 ${fmt(h.gas.netRevenue)} · 充电 ${fmt(h.charge.netRevenue)}</div>
       </div>
       <div class="h-actions">
         <button class="load" onclick="loadHistory(${h.id})">加载参数</button>
@@ -2772,15 +2692,6 @@ function loadHistory(id) {
   document.getElementById('chg.plat').value = p.charge.plat;
   document.getElementById('chg.ad').value = p.charge.ad;
   document.getElementById('chg.fix').value = p.charge.fixed;
-  // 租车
-  document.getElementById('rent.price').value = p.rent.price;
-  document.getElementById('rent.cost').value = p.rent.cost;
-  document.getElementById('rent.vol').value = p.rent.vol;
-  document.getElementById('rent.days').value = p.rent.days;
-  document.getElementById('rent.util').value = p.rent.util;
-  document.getElementById('rent.comp').value = p.rent.comp;
-  document.getElementById('rent.plat').value = p.rent.plat;
-  document.getElementById('rent.fix').value = p.rent.fixed;
   computeAll();
   document.querySelector('.tab[data-tab=gas]').click();
 }
@@ -2970,6 +2881,18 @@ document.getElementById('combo-manual-price').addEventListener('input', e => {
 
 updateGasFormula(); updateChgFormula(); updateRentFormula();
 computeAll();
+
+/* ============ S2 规划 tab 切换 ============ */
+document.querySelectorAll('#s2-btns .s2-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#s2-btns .s2-btn').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    document.getElementById('s2-frame').src = b.dataset.src;
+    document.getElementById('s2-open').href = b.dataset.src;
+  });
+});
+const s2first = document.querySelector('#s2-btns .s2-btn');
+if (s2first) s2first.classList.add('on');
 </script>
 </body>
 </html>
