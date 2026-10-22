@@ -254,11 +254,68 @@ function mkData(stacked){
     ]
   };
 }
+// 数值标注插件：堆叠图顶部标月合计 + 足够高的色段内标分渠道值；折线图每点上方标值
+const labelsPlugin={
+  id:'gmvLabels',
+  afterDatasetsDraw(chart){
+    const ctx=chart.ctx;
+    const stacked=chart.options.scales.x.stacked;
+    if(stacked){
+      chart.getDatasetMeta(0).data.forEach((el,i)=>{
+        const x=el.x;
+        let total=0;
+        chart.data.datasets.forEach(d=>{total+=d.data[i]||0;});
+        if(total<=0)return;
+        ctx.save();
+        ctx.font='600 12px -apple-system,PingFang SC,sans-serif';
+        ctx.textAlign='center';ctx.textBaseline='bottom';
+        ctx.fillStyle='#0f172a';
+        ctx.fillText(total+'W',x,chart.scales.y.getPixelForValue(total)-6);
+        ctx.restore();
+        let acc=0;
+        chart.data.datasets.forEach(d=>{
+          const v=d.data[i]||0;
+          if(v>0){
+            const y0=chart.scales.y.getPixelForValue(acc);
+            const y1=chart.scales.y.getPixelForValue(acc+v);
+            const h=Math.abs(y1-y0);
+            acc+=v;
+            if(h>=16){
+              ctx.save();
+              ctx.font='600 11px -apple-system,PingFang SC,sans-serif';
+              ctx.textAlign='center';ctx.textBaseline='middle';
+              ctx.fillStyle='#fff';
+              ctx.fillText(v+'W',x,Math.min(y0,y1)+h/2);
+              ctx.restore();
+            }
+          }
+        });
+      });
+    }else{
+      chart.data.datasets.forEach((d,di)=>{
+        chart.getDatasetMeta(di).data.forEach((el,i)=>{
+          const v=d.data[i];
+          if(v>0){
+            ctx.save();
+            ctx.font='600 11px -apple-system,PingFang SC,sans-serif';
+            ctx.textAlign='center';ctx.textBaseline='bottom';
+            ctx.fillStyle=d.borderColor||'#0f172a';
+            ctx.fillText(v+'W',el.x,el.y-6);
+            ctx.restore();
+          }
+        });
+      });
+    }
+  }
+};
+
 const gmvChart=new Chart(ctx,{
   type:'bar',
   data:mkData(true),
+  plugins:[labelsPlugin],
   options:{
     responsive:true,maintainAspectRatio:false,
+    layout:{padding:{top:18}},
     plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw+'W'}}},
     scales:{
       x:{stacked:true,grid:{display:false}},
