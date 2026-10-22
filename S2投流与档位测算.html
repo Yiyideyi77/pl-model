@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>S2 加油券 toC 渠道损益测算 · 投流预算 × 券档位分配</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f4f6fb;--panel:#fff;--panel-2:#f8fafc;--ink:#0f172a;--muted:#64748b;
+  --accent:#2563eb;--accent-2:#7c3aed;--line:#e5e7eb;
+  --dy:#0ea5e9;--xhs:#ef4444;--sph:#16a34a;
+  --ok:#10b981;--warn:#f59e0b;--bad:#ef4444;
+}
+*{box-sizing:border-box}
+body{margin:0;font:13px/1.5 -apple-system,"PingFang SC","Helvetica Neue",sans-serif;color:var(--ink);background:var(--bg)}
+.wrap{max-width:1360px;margin:0 auto;padding:20px}
+header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+h1{margin:0;font-size:20px;letter-spacing:.3px}
+h1 small{display:block;color:var(--muted);font-size:12px;font-weight:400;margin-top:3px}
+.tabs{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--line)}
+.tab{padding:10px 18px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;font-weight:500}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+.view{display:none}.view.on{display:block}
+
+.kpi{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+.card{background:var(--panel);border-radius:12px;padding:14px 16px;box-shadow:0 1px 3px rgba(15,23,42,.04)}
+.card h3{margin:0 0 6px;font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.4px}
+.card .v{font-size:22px;font-weight:600}
+.card .sub{font-size:11px;color:var(--muted);margin-top:3px}
+.pos{color:var(--ok)}.neg{color:var(--bad)}.mid{color:var(--warn)}
+
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}
+@media(max-width:900px){.grid3,.kpi{grid-template-columns:1fr}}
+.panel{background:var(--panel);border-radius:12px;padding:16px 18px;box-shadow:0 1px 3px rgba(15,23,42,.04)}
+.panel h2{margin:0 0 14px;font-size:14px;display:flex;align-items:center;gap:8px}
+.panel h2::before{content:"";width:3px;height:14px;background:linear-gradient(var(--accent),var(--accent-2));border-radius:2px}
+.panel.dy h2::before{background:var(--dy)}.panel.xhs h2::before{background:var(--xhs)}.panel.sph h2::before{background:var(--sph)}
+
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin-bottom:8px}
+.row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px 14px;margin-bottom:8px}
+.field{display:flex;flex-direction:column;gap:3px}
+.field label{font-size:11px;color:var(--muted);display:flex;justify-content:space-between}
+.field .hint{font-size:10px;color:#94a3b8}
+.input-wrap{position:relative;display:flex;align-items:center}
+.input-wrap input{width:100%;padding:7px 32px 7px 10px;border:1px solid var(--line);border-radius:7px;font-size:13px;background:#fff;outline:none;transition:border .15s}
+.input-wrap input:focus{border-color:var(--accent)}
+.input-wrap .unit{position:absolute;right:10px;color:var(--muted);font-size:11px;pointer-events:none}
+.result{background:var(--panel-2);border-radius:10px;padding:10px 12px;margin-top:8px;font-size:12px}
+.result .line{display:flex;justify-content:space-between;padding:2px 0}
+.result .line b{font-weight:600}
+.result .line.total{border-top:1px dashed var(--line);margin-top:4px;padding-top:6px;font-size:13px}
+
+.chart-row{display:grid;grid-template-columns:1.2fr 1fr;gap:14px;margin-bottom:16px}
+@media(max-width:900px){.chart-row{grid-template-columns:1fr}}
+.chart-wrap{position:relative;height:300px}
+.legend{display:flex;gap:12px;font-size:11px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend span{display:flex;align-items:center;gap:5px}
+.legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+
+.tier-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}
+.tier-table th,.tier-table td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:right}
+.tier-table th{background:var(--panel-2);color:var(--muted);font-weight:500;font-size:11px;position:sticky;top:0}
+.tier-table th:first-child,.tier-table td:first-child{text-align:left;font-weight:500}
+.tier-table td input{width:72px;padding:4px 6px;border:1px solid var(--line);border-radius:5px;font-size:12px;text-align:right;background:#fff}
+.tier-table td select{padding:4px 6px;border:1px solid var(--line);border-radius:5px;font-size:12px;background:#fff}
+.tier-table tr:hover{background:#f8fafc}
+.tier-table .role{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500}
+.role-引流{background:#dbeafe;color:#1e40af}
+.role-主推{background:#fef3c7;color:#92400e}
+.role-利润{background:#d1fae5;color:#065f46}
+.sum-row{background:#eef2ff!important;font-weight:600}
+
+.badge{display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:500}
+.note{background:#fffbeb;border-left:3px solid var(--warn);padding:10px 12px;border-radius:6px;font-size:12px;margin-top:10px;color:#78350f}
+.note b{color:#92400e}
+footer{color:var(--muted);font-size:11px;text-align:center;margin-top:20px;padding:12px}
+.btn{padding:6px 12px;border:1px solid var(--line);background:#fff;border-radius:6px;cursor:pointer;font-size:12px}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pill-group{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;font-size:11px}
+.pill-group button{border:none;background:#fff;padding:5px 10px;cursor:pointer}
+.pill-group button.on{background:var(--accent);color:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>S2 加油券 toC 渠道损益测算
+    <small>投流预算 × ROI × 券档位分配 ｜ 与损益模型测试系统公式对齐</small>
+  </h1>
+  <div>
+    <button class="btn" onclick="resetAll()">重置默认</button>
+    <button class="btn primary" onclick="applyPreset('激进')">激进档</button>
+    <button class="btn" onclick="applyPreset('保守')">保守档</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab on" data-v="flow">① 投流预算与 ROI 测算</div>
+  <div class="tab" data-v="tier">② 券档位 × 渠道分配</div>
+</div>
+
+<!-- ============ ① 投流 ============ -->
+<div class="view on" id="v-flow">
+
+  <!-- 全局参数 -->
+  <div class="panel" style="margin-bottom:16px">
+    <h2>全局参数（三渠道共用）</h2>
+    <div class="row-3">
+      <div class="field"><label>平均券售价<span class="hint">各档加权均值</span></label><div class="input-wrap"><input id="g_avgPrice" type="number" value="15" step="0.5" autocomplete="off"/><span class="unit">元</span></div></div>
+      <div class="field"><label>平均优惠金额<span class="hint">即折扣额/计算基数</span></label><div class="input-wrap"><input id="g_avgDiscount" type="number" value="15" step="0.5" autocomplete="off"/><span class="unit">元</span></div></div>
+      <div class="field"><label>CP 成本（内部结算价）</label><div class="input-wrap"><input id="g_cp" type="number" value="10.5" step="0.1" autocomplete="off"/><span class="unit">元</span></div></div>
+      <div class="field"><label>订单均值<span class="hint">核销订单金额</span></label><div class="input-wrap"><input id="g_orderAmt" type="number" value="300" step="10" autocomplete="off"/><span class="unit">元</span></div></div>
+      <div class="field"><label>订单佣金率<span class="hint">平台返佣</span></label><div class="input-wrap"><input id="g_orderRate" type="number" value="0.5" step="0.1" autocomplete="off"/><span class="unit">%</span></div></div>
+      <div class="field"><label>固定成本月摊<span class="hint">人力/系统/运营</span></label><div class="input-wrap"><input id="g_fixed" type="number" value="5" step="1" autocomplete="off"/><span class="unit">万</span></div></div>
+    </div>
+  </div>
+
+  <!-- 三渠道卡 -->
+  <div class="grid3">
+    <!-- 抖音 -->
+    <div class="panel dy" data-ch="dy">
+      <h2>抖音</h2>
+      <div class="row">
+        <div class="field"><label>月 GMV 目标<span class="hint">11/25 上线，按 12-3 月 4 个月放量：上线后月均 625W</span></label><div class="input-wrap"><input data-k="gmv" type="number" value="500" autocomplete="off"/><span class="unit">万</span></div></div>
+        <div class="field"><label>核销率</label><div class="input-wrap"><input data-k="redeem" type="number" value="70" autocomplete="off"/><span class="unit">%</span></div></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>投流占 GMV</label><div class="input-wrap"><input data-k="adRate" type="number" value="8" autocomplete="off"/><span class="unit">%</span></div></div>
+        <div class="field"><label>投流 ROI<span class="hint">每 1 元投流带来 GMV</span></label><div class="input-wrap"><input data-k="roi" type="number" value="3.0" step="0.1" autocomplete="off"/><span class="unit">×</span></div></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>平台费率</label><div class="input-wrap"><input data-k="platRate" type="number" value="3.0" step="0.1" autocomplete="off"/><span class="unit">%</span></div></div>
+        <div class="field"><label>达人佣金率<span class="hint">占 GMV</span></label><div class="input-wrap"><input data-k="kolRate" type="number" value="3.0" step="0.1" autocomplete="off"/><span class="unit">%</span></div></div>
+      </div>
+      <div class="result" data-out></div>
+    </div>
+
+    <!-- 小红书 -->
+    <div class="panel xhs" data-ch="xhs">
+      <h2>小红书</h2>
+      <div class="row">
+        <div class="field"><label>月 GMV 目标</label><div class="input-wrap"><input data-k="gmv" type="number" value="125" autocomplete="off"/><span class="unit">万</span></div></div>
+        <div class="field"><label>核销率</label><div class="input-wrap"><input data-k="redeem" type="number" value="65" autocomplete="off"/><span class="unit">%</span></div></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>投流占 GMV</label><div class="input-wrap"><input data-k="adRate" type="number" value="10" autocomplete="off"/><span class="unit">%</span></div></div>
+        <div class="field"><label>投流 ROI</label><div class="input-wrap"><input data-k="roi" type="number" value="2.5" step="0.1" autocomplete="off"/><span class="unit">×</span></div></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>平台费率</label><div class="input-wrap"><input data-k="platRate" type="number" value="4.0" step="0.1" autocomplete="off"/><span class="unit">%</span></div></div>
+        <div class="field"><label>达人/KOC 佣金率</label><div class="input-wrap"><input data-k="kolRate" type="number" value="5.0" step="0.1" autocomplete="off"/><span class="unit">%</span></div></div>
+      </div>
+      <div class="result" data-out></div>
+    </div>
+
+    <!-- 视频号 -->
+    <div class="panel sph" data-ch="sph">
+      <h2>视频号</h2>
+      <div class="row">
+        <div class="field"><label>月 GMV 目标</label><div class="input-wrap"><input data-k="gmv" type="number" value="41" autocomplete="off"/><span class="unit">万</span></div></div>
+        <div class="field"><label>核销率<span class="hint">私域较高</span></label><div class="input-wrap"><input data-k="redeem" type="number" value="75" autocomplete="off"/><span class="unit">%</span></div></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>投流占 GMV<span class="hint">主攻私域免费流量</span></label><div class="input-wrap"><input data-k="adRate" type="number" value="5" autocomplete="off"/><span class="unit">%</span></div></div>
+        <div class="field"><label>投流 ROI</label><div class="input-wrap"><input data-k="roi" type="number" value="2.0" step="0.1" autocomplete="off"/><span class="unit">×</span></div></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>平台费率</label><div class="input-wrap"><input data-k="platRate" type="number" value="1.5" step="0.1" autocomplete="off"/><span class="unit">%</span></div></div>
+        <div class="field"><label>达人佣金率</label><div class="input-wrap"><input data-k="kolRate" type="number" value="2.0" step="0.1" autocomplete="off"/><span class="unit">%</span></div></div>
+      </div>
+      <div class="result" data-out></div>
+    </div>
+  </div>
+
+  <!-- 图表 -->
+  <div class="chart-row">
+    <div class="panel">
+      <h2>三渠道月度损益对比</h2>
+      <div class="chart-wrap"><canvas id="plChart"></canvas></div>
+      <div class="legend">
+        <span><i style="background:#22c55e"></i>售卖利润（核销）</span>
+        <span><i style="background:#a3e635"></i>过期收入</span>
+        <span><i style="background:#60a5fa"></i>订单佣金</span>
+        <span><i style="background:#f87171"></i>投流</span>
+        <span><i style="background:#fb923c"></i>平台费</span>
+        <span><i style="background:#c084fc"></i>达人佣金</span>
+        <span><i style="background:#94a3b8"></i>固定成本分摊</span>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>利润率 ROI 敏感性</h2>
+      <div class="chart-wrap"><canvas id="sensChart"></canvas></div>
+      <div class="legend"><span>当前渠道利润率随投流 ROI 变动（横轴 ROI ×，纵轴利润率 %）</span></div>
+    </div>
+  </div>
+
+  <!-- 总 KPI -->
+  <div class="kpi">
+    <div class="card"><h3>S2 月均 GMV</h3><div class="v" id="k_gmv">583<span style="font-size:12px;color:var(--muted)"> 万</span></div><div class="sub">三渠道合计</div></div>
+    <div class="card"><h3>月投流预算</h3><div class="v" id="k_ad">48.2<span style="font-size:12px;color:var(--muted)"> 万</span></div><div class="sub" id="k_adSub">占 GMV 8.3%</div></div>
+    <div class="card"><h3>月净利润</h3><div class="v" id="k_np">--</div><div class="sub" id="k_npSub"></div></div>
+    <div class="card"><h3>综合利润率</h3><div class="v" id="k_rate">--</div><div class="sub" id="k_rateSub">目标 1%-3%</div></div>
+    <div class="card"><h3>S2 累计利润</h3><div class="v" id="k_total">--</div><div class="sub">× 6 个月</div></div>
+  </div>
+
+  <div class="note">
+    <b>公式对齐损益模型：</b>单券利润 = (售价−CP)×核销率 + 售价×(1−核销率) + 订单×核销率×佣金率 − 投流 − 平台费 − 达人佣金。CP 在售卖利润中净扣，不单独列成本。固定成本按月均摊到三渠道（按 GMV 占比分摊）。
+  </div>
+</div>
+
+<!-- ============ ② 档位 ============ -->
+<div class="view" id="v-tier">
+  <div class="panel" style="margin-bottom:16px">
+    <h2>券档位 × 渠道分配矩阵</h2>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:6px">
+      <span><span class="role role-引流">引流</span> 低价引流，利润率可负，用规模带动主推档转化</span>
+      <span><span class="role role-主推">主推</span> 走量主力，利润率 ≥ 1%</span>
+      <span><span class="role role-利润">利润</span> 高毛利，大促限量，拉升整体利润率</span>
+    </div>
+    <div class="note">销量列 = 月销量（张/月），修改后自动联动单档利润与合计利润率。售价/CP 修改会联动全行损益。</div>
+  </div>
+
+  <div class="panel" style="overflow-x:auto">
+    <table class="tier-table" id="tierTable">
+      <thead>
+        <tr>
+          <th rowspan="2">档位<br/>(面值−优惠)</th>
+          <th rowspan="2">角色</th>
+          <th rowspan="2">售价<br/>(元)</th>
+          <th rowspan="2">CP<br/>(元)</th>
+          <th colspan="3">月销量（张/月）</th>
+          <th rowspan="2">合计<br/>月销量</th>
+          <th rowspan="2">月 GMV<br/>(元)</th>
+          <th rowspan="2">月净利润<br/>(元)</th>
+          <th rowspan="2">利润率</th>
+        </tr>
+        <tr>
+          <th style="color:var(--dy)">抖音</th>
+          <th style="color:var(--xhs)">小红书</th>
+          <th style="color:var(--sph)">视频号</th>
+        </tr>
+      </thead>
+      <tbody id="tierBody"></tbody>
+      <tfoot>
+        <tr class="sum-row">
+          <td>合计</td><td>—</td><td>—</td><td>—</td>
+          <td id="s_dy">0</td><td id="s_xhs">0</td><td id="s_sph">0</td>
+          <td id="s_qty">0</td><td id="s_gmv">0</td><td id="s_np">0</td><td id="s_rate">0%</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div class="chart-row" style="margin-top:16px">
+    <div class="panel">
+      <h2>档位销量分布</h2>
+      <div class="chart-wrap"><canvas id="tierQtyChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <h2>档位利润贡献</h2>
+      <div class="chart-wrap"><canvas id="tierProfitChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="note" id="tierNote"></div>
+</div>
+
+<footer>公式口径同「损益模型测试系统」· 制表：伽萝 · 2026.10</footer>
+</div>
+
+<script>
+// ============ Tab 切换 ============
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on');
+    document.getElementById('v-'+t.dataset.v).classList.add('on');
+  };
+});
+
+// ============ 工具 ============
+const num=v=>parseFloat(v)||0;
+const fmt=(n,d=2)=>n.toLocaleString('zh-CN',{maximumFractionDigits:d,minimumFractionDigits:d});
+const fmtW=n=>(n>=0?'+':'')+n.toFixed(2)+'万';
+
+// ============ 全局参数 ============
+const G = {
+  get avgPrice(){return num(g_avgPrice.value)},
+  get avgDiscount(){return num(g_avgDiscount.value)},
+  get cp(){return num(g_cp.value)},
+  get orderAmt(){return num(g_orderAmt.value)},
+  get orderRate(){return num(g_orderRate.value)/100},
+  get fixed(){return num(g_fixed.value)*10000} // 元/月
+};
+
+// ============ 渠道损益计算 ============
+// 返回单位：元
+function calcChannel(card){
+  const gmvWan = num(card.querySelector('[data-k="gmv"]').value);
+  const redeem = num(card.querySelector('[data-k="redeem"]').value)/100;
+  const adRate = num(card.querySelector('[data-k="adRate"]').value)/100;
+  const roi    = num(card.querySelector('[data-k="roi"]').value);
+  const platRate = num(card.querySelector('[data-k="platRate"]').value)/100;
+  const kolRate  = num(card.querySelector('[data-k="kolRate"]').value)/100;
+
+  const gmv = gmvWan*10000;              // 元
+  const avgPrice = G.avgPrice;
+  const cp = G.cp;
+  const redeemQty = gmv / avgPrice;      // 核销张数
+  const soldQty = redeemQty / redeem;    // 总销量
+  const expireQty = soldQty - redeemQty; // 未核销
+
+  // 三收入
+  const saleProfit = (avgPrice - cp) * redeemQty;       // 售卖利润（CP 净扣）
+  const expireIncome = avgPrice * expireQty;            // 过期收入
+  const orderIncome = G.orderAmt * G.orderRate * redeemQty; // 订单佣金
+
+  // 三成本
+  const adSpend = gmv * adRate;
+  const platFee = gmv * platRate;
+  const kolFee  = gmv * kolRate;
+
+  const gross = saleProfit + expireIncome + orderIncome;
+  const cost  = adSpend + platFee + kolFee;
+  const net = gross - cost;
+  const rate = gmv>0 ? net/gmv*100 : 0;
+
+  return {gmvWan,gmv,redeem,adRate,roi,platRate,kolRate,
+          soldQty,redeemQty,expireQty,
+          saleProfit,expireIncome,orderIncome,
+          adSpend,platFee,kolFee,
+          gross,cost,net,rate};
+}
+
+// ============ 渲染渠道卡 ============
+function renderCard(card){
+  const r = calcChannel(card);
+  const out = card.querySelector('[data-out]');
+  const lines = [
+    ['月销量', fmt(r.soldQty,0)+' 张'],
+    ['核销张数', fmt(r.redeemQty,0)+' 张'],
+    ['售卖利润（核销）', fmt(r.saleProfit/10000,2)+' 万'],
+    ['过期收入', fmt(r.expireIncome/10000,2)+' 万'],
+    ['订单佣金', fmt(r.orderIncome/10000,2)+' 万'],
+    ['投流支出', '−'+fmt(r.adSpend/10000,2)+' 万'],
+    ['平台费', '−'+fmt(r.platFee/10000,2)+' 万'],
+    ['达人佣金', '−'+fmt(r.kolFee/10000,2)+' 万'],
+  ];
+  out.innerHTML = lines.map(([k,v])=>`<div class="line"><span>${k}</span><b>${v}</b></div>`).join('')
+    + `<div class="line total"><span>月净利润</span><b class="${r.net>=0?'pos':'neg'}">${fmt(r.net/10000,2)} 万</b></div>`
+    + `<div class="line"><span>利润率</span><b class="${r.rate>=1&&r.rate<=3?'pos':r.rate>=0?'mid':'neg'}">${r.rate.toFixed(2)}%</b></div>`;
+  card.__r = r;
+}
+
+// ============ 总 KPI ============
+function renderKPI(){
+  const cards = [...document.querySelectorAll('[data-ch]')];
+  cards.forEach(renderCard);
+  const rs = cards.map(c=>c.__r);
+  const totalGmv = rs.reduce((a,r)=>a+r.gmv,0);
+  const totalAd  = rs.reduce((a,r)=>a+r.adSpend,0);
+  const totalNp  = rs.reduce((a,r)=>a+r.net,0) - G.fixed; // 扣固定成本
+  const rate = totalGmv>0 ? totalNp/totalGmv*100 : 0;
+
+  document.getElementById('k_gmv').innerHTML = fmt(totalGmv/10000,1)+'<span style="font-size:12px;color:var(--muted)"> 万</span>';
+  document.getElementById('k_ad').innerHTML  = fmt(totalAd/10000,1)+'<span style="font-size:12px;color:var(--muted)"> 万</span>';
+  document.getElementById('k_adSub').textContent = '占 GMV '+(totalGmv>0?(totalAd/totalGmv*100).toFixed(1):'0')+'%';
+  const npEl = document.getElementById('k_np');
+  npEl.innerHTML = fmt(totalNp/10000,2)+'<span style="font-size:12px;color:var(--muted)"> 万</span>';
+  npEl.className = 'v '+(totalNp>=0?'pos':'neg');
+  document.getElementById('k_npSub').textContent = '扣固定成本 '+(G.fixed/10000).toFixed(1)+'万';
+  const rateEl = document.getElementById('k_rate');
+  rateEl.innerHTML = rate.toFixed(2)+'<span style="font-size:12px;color:var(--muted)"> %</span>';
+  rateEl.className = 'v '+(rate>=1&&rate<=3?'pos':rate>=0?'mid':'neg');
+  document.getElementById('k_rateSub').textContent = rate>=1&&rate<=3?'✓ 命中 1%-3% 目标':rate<1?'低于 1% 目标':'高于 3% 上限';
+  const totEl = document.getElementById('k_total');
+  const tot = totalNp*6;
+  totEl.innerHTML = fmt(tot/10000,1)+'<span style="font-size:12px;color:var(--muted)"> 万</span>';
+  totEl.className = 'v '+(tot>=0?'pos':'neg');
+
+  renderPLChart(rs);
+  renderSensChart(cards);
+}
+
+// ============ PL 对比图 ============
+let plChart,sensChart;
+function renderPLChart(rs){
+  const labels = ['抖音','小红书','视频号'];
+  const mkDs = (name,key,color)=>({label:name,data:rs.map(r=>r[key]/10000),backgroundColor:color,borderColor:color,borderWidth:2,stack:'s',borderRadius:4});
+  if(plChart) plChart.destroy();
+  plChart = new Chart(document.getElementById('plChart'),{
+    type:'bar',
+    data:{labels,datasets:[
+      mkDs('售卖利润','saleProfit','#22c55e'),
+      mkDs('过期收入','expireIncome','#a3e635'),
+      mkDs('订单佣金','orderIncome','#60a5fa'),
+      {...mkDs('投流','adSpend','#f87171'),data:rs.map(r=>-r.adSpend/10000)},
+      {...mkDs('平台费','platFee','#fb923c'),data:rs.map(r=>-r.platFee/10000)},
+      {...mkDs('达人佣金','kolFee','#c084fc'),data:rs.map(r=>-r.kolFee/10000)},
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw.toFixed(2)+'万'}}},
+      scales:{
+        x:{stacked:true,grid:{display:false}},
+        y:{stacked:true,grid:{color:'#f1f5f9'},ticks:{callback:v=>v+'万'},title:{display:true,text:'月度金额（万元）',font:{size:11}}}
+      }
+    }
+  });
+}
+
+// ============ 敏感性：利润率 vs ROI ============
+function renderSensChart(cards){
+  const rois=[0.8,1.2,1.5,2.0,2.5,3.0,4.0,5.0];
+  const colors={dy:'#0ea5e9',xhs:'#ef4444',sph:'#16a34a'};
+  const names={dy:'抖音',xhs:'小红书',sph:'视频号'};
+  const datasets = cards.map(c=>{
+    const ch = c.dataset.ch;
+    const gmvWan=num(c.querySelector('[data-k="gmv"]').value);
+    const redeem=num(c.querySelector('[data-k="redeem"]').value)/100;
+    const platRate=num(c.querySelector('[data-k="platRate"]').value)/100;
+    const kolRate=num(c.querySelector('[data-k="kolRate"]').value)/100;
+    const adRate=num(c.querySelector('[data-k="adRate"]').value)/100;
+    const pts = rois.map(roi=>{
+      const gmv=gmvWan*10000;
+      const redeemQty=gmv/G.avgPrice;
+      const soldQty=redeemQty/redeem;
+      const expireQty=soldQty-redeemQty;
+      const saleP=(G.avgPrice-G.cp)*redeemQty;
+      const expireI=G.avgPrice*expireQty;
+      const orderI=G.orderAmt*G.orderRate*redeemQty;
+      // 投流=GMV×投流率（与 ROI 解耦，仅看 ROI 影响投流效率时利润率不变 → 改为按 ROI 反推投流）
+      // 这里用：投流 = GMV / ROI（即「带来这份 GMV 需要的投流」，ROI 越高投流越少）
+      const ad = gmv / roi;
+      const net = saleP+expireI+orderI - ad - gmv*platRate - gmv*kolRate;
+      return {x:roi,y:net/gmv*100};
+    });
+    return {label:names[ch],data:pts,borderColor:colors[ch],backgroundColor:colors[ch],tension:.3,borderWidth:2,pointRadius:3,fill:false};
+  });
+  if(sensChart) sensChart.destroy();
+  sensChart = new Chart(document.getElementById('sensChart'),{
+    type:'line',
+    data:{labels:rois.map(r=>r+'×'),datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{font:{size:11}}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw.y.toFixed(2)+'%'}}},
+      scales:{
+        x:{title:{display:true,text:'投流 ROI',font:{size:11}},grid:{display:false}},
+        y:{title:{display:true,text:'利润率 %',font:{size:11}},grid:{color:'#f1f5f9'}}
+      }
+    }
+  });
+}
+
+// ============ 事件绑定 ============
+document.querySelectorAll('#v-flow input').forEach(inp=>inp.addEventListener('input',renderKPI));
+renderKPI();
+
+// ============ 档位表 ============
+const TIERS = [
+  {tier:'200-8',  role:'引流', price:8,  cp:5.6, dy:1100,xhs:250, sph:100},
+  {tier:'200-9',  role:'引流', price:9,  cp:6.3, dy:850, xhs:180, sph:75},
+  {tier:'200-10', role:'引流', price:10, cp:7.0, dy:700, xhs:180, sph:75},
+  {tier:'200-12', role:'引流', price:12, cp:8.4, dy:550, xhs:180, sph:75},
+  {tier:'200-15', role:'主推', price:15, cp:10.5,dy:1700,xhs:550, sph:200},
+  {tier:'200-18', role:'主推', price:18, cp:12.6,dy:1100,xhs:380, sph:150},
+  {tier:'200-20', role:'主推', price:20, cp:14.0,dy:1400,xhs:430, sph:175},
+  {tier:'200-22', role:'主推', price:22, cp:15.4,dy:550, xhs:180, sph:75},
+  {tier:'200-25', role:'利润', price:25, cp:17.5,dy:420, xhs:250, sph:100},
+  {tier:'200-28', role:'利润', price:28, cp:19.6,dy:280, xhs:180, sph:75},
+  {tier:'200-30', role:'利润', price:30, cp:21.0,dy:350, xhs:220, sph:90},
+  {tier:'200-40', role:'利润', price:40, cp:28.0,dy:140, xhs:90,  sph:40},
+  {tier:'200-50', role:'利润', price:50, cp:35.0,dy:110, xhs:75,  sph:30},
+];
+
+function calcTierRow(r){
+  const totalQty = r.dy + r.xhs + r.sph;
+  const gmv = r.price * totalQty;
+  const redeem = 0.70; // 档位表统一用 70%，与投流卡默认值一致
+  const redeemQty = totalQty * redeem;
+  const expireQty = totalQty - redeemQty;
+  const saleP = (r.price - r.cp) * redeemQty;
+  const expireI = r.price * expireQty;
+  const orderI = G.orderAmt * G.orderRate * redeemQty;
+  // 档位级成本：按 GMV 加权分摊（取三渠道均值费率）
+  const avgPlat = 0.03; // 3%
+  const avgKol = 0.035; // 3.5%
+  const avgAd  = 0.08;  // 8%
+  const cost = gmv*(avgPlat+avgKol+avgAd);
+  const net = saleP+expireI+orderI - cost;
+  const rate = gmv>0 ? net/gmv*100 : 0;
+  return {totalQty,gmv,saleP,expireI,orderI,cost,net,rate};
+}
+
+let tierQtyChart,tierProfitChart;
+function renderTier(){
+  const body = document.getElementById('tierBody');
+  body.innerHTML = '';
+  let s_dy=0,s_xhs=0,s_sph=0,s_qty=0,s_gmv=0,s_np=0;
+  TIERS.forEach((t,idx)=>{
+    const r = calcTierRow(t);
+    s_dy+=t.dy;s_xhs+=t.xhs;s_sph+=t.sph;s_qty+=r.totalQty;s_gmv+=r.gmv;s_np+=r.net;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${t.tier}</td>
+      <td><span class="role role-${t.role}">${t.role}</span></td>
+      <td><input type="number" data-idx="${idx}" data-k="price" value="${t.price}" step="0.5"/></td>
+      <td><input type="number" data-idx="${idx}" data-k="cp" value="${t.cp}" step="0.1"/></td>
+      <td><input type="number" data-idx="${idx}" data-k="dy" value="${t.dy}" step="50"/></td>
+      <td><input type="number" data-idx="${idx}" data-k="xhs" value="${t.xhs}" step="50"/></td>
+      <td><input type="number" data-idx="${idx}" data-k="sph" value="${t.sph}" step="50"/></td>
+      <td>${r.totalQty.toLocaleString()}</td>
+      <td>${fmt(r.gmv/10000,2)} 万</td>
+      <td style="color:${r.net>=0?'var(--ok)':'var(--bad)'}">${fmt(r.net/10000,2)} 万</td>
+      <td style="color:${r.rate>=1?'var(--ok)':'var(--bad)'}"><b>${r.rate.toFixed(2)}%</b></td>
+    `;
+    body.appendChild(tr);
+  });
+  document.getElementById('s_dy').textContent = s_dy.toLocaleString();
+  document.getElementById('s_xhs').textContent = s_xhs.toLocaleString();
+  document.getElementById('s_sph').textContent = s_sph.toLocaleString();
+  document.getElementById('s_qty').textContent = s_qty.toLocaleString();
+  document.getElementById('s_gmv').textContent = fmt(s_gmv/10000,2)+' 万';
+  document.getElementById('s_np').innerHTML = `<span style="color:${s_np>=0?'var(--ok)':'var(--bad)'}">${fmt(s_np/10000,2)} 万</span>`;
+  document.getElementById('s_rate').innerHTML = `<span style="color:${(s_np/s_gmv*100)>=1?'var(--ok)':'var(--bad)'}">${s_gmv>0?(s_np/s_gmv*100).toFixed(2):'0'}%</span>`;
+
+  // 图表
+  const labels = TIERS.map(t=>t.tier);
+  if(tierQtyChart) tierQtyChart.destroy();
+  tierQtyChart = new Chart(document.getElementById('tierQtyChart'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'抖音',data:TIERS.map(t=>t.dy),backgroundColor:'#0ea5e9',stack:'s'},
+      {label:'小红书',data:TIERS.map(t=>t.xhs),backgroundColor:'#ef4444',stack:'s'},
+      {label:'视频号',data:TIERS.map(t=>t.sph),backgroundColor:'#16a34a',stack:'s'},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11}}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,ticks:{callback:v=>v+'张'}}}}
+  });
+  if(tierProfitChart) tierProfitChart.destroy();
+  const profitData = TIERS.map(t=>calcTierRow(t).net/10000);
+  tierProfitChart = new Chart(document.getElementById('tierProfitChart'),{
+    type:'bar',
+    data:{labels,datasets:[{label:'月净利润(万)',data:profitData,backgroundColor:profitData.map(v=>v>=0?'#10b981':'#ef4444'),borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw.toFixed(2)+'万'}}},scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>v+'万'}}}}
+  });
+
+  // 角色汇总提示
+  const roleSum = {引流:{gmv:0,np:0},主推:{gmv:0,np:0},利润:{gmv:0,np:0}};
+  TIERS.forEach(t=>{const r=calcTierRow(t);roleSum[t.role].gmv+=r.gmv;roleSum[t.role].np+=r.net;});
+  const note = ['引流','主推','利润'].map(k=>{
+    const s = roleSum[k];
+    const rate = s.gmv>0 ? s.np/s.gmv*100 : 0;
+    return `<b>${k}</b>：GMV ${fmt(s.gmv/10000,1)}万 / 利润 ${fmt(s.np/10000,2)}万 / 利润率 ${rate.toFixed(2)}%`;
+  }).join(' · ');
+  document.getElementById('tierNote').innerHTML = '<b>角色小结：</b>'+note;
+}
+
+document.getElementById('tierBody').addEventListener('input',e=>{
+  if(e.target.tagName==='INPUT'){
+    const idx = +e.target.dataset.idx;
+    const k = e.target.dataset.k;
+    TIERS[idx][k] = num(e.target.value);
+    renderTier();
+  }
+});
+renderTier();
+
+// ============ 预设 / 重置 ============
+function resetAll(){
+  g_avgPrice.value=15;g_avgDiscount.value=15;g_cp.value=10.5;g_orderAmt.value=300;g_orderRate.value=0.5;g_fixed.value=5;
+  document.querySelector('[data-ch="dy"] [data-k="gmv"]').value=500;
+  document.querySelector('[data-ch="dy"] [data-k="redeem"]').value=70;
+  document.querySelector('[data-ch="dy"] [data-k="adRate"]').value=8;
+  document.querySelector('[data-ch="dy"] [data-k="roi"]').value=3.0;
+  document.querySelector('[data-ch="dy"] [data-k="platRate"]').value=3.0;
+  document.querySelector('[data-ch="dy"] [data-k="kolRate"]').value=3.0;
+  document.querySelector('[data-ch="xhs"] [data-k="gmv"]').value=125;
+  document.querySelector('[data-ch="xhs"] [data-k="redeem"]').value=65;
+  document.querySelector('[data-ch="xhs"] [data-k="adRate"]').value=10;
+  document.querySelector('[data-ch="xhs"] [data-k="roi"]').value=2.5;
+  document.querySelector('[data-ch="xhs"] [data-k="platRate"]').value=4.0;
+  document.querySelector('[data-ch="xhs"] [data-k="kolRate"]').value=5.0;
+  document.querySelector('[data-ch="sph"] [data-k="gmv"]').value=41;
+  document.querySelector('[data-ch="sph"] [data-k="redeem"]').value=75;
+  document.querySelector('[data-ch="sph"] [data-k="adRate"]').value=5;
+  document.querySelector('[data-ch="sph"] [data-k="roi"]').value=2.0;
+  document.querySelector('[data-ch="sph"] [data-k="platRate"]').value=1.5;
+  document.querySelector('[data-ch="sph"] [data-k="kolRate"]').value=2.0;
+  renderKPI();
+}
+function applyPreset(kind){
+  if(kind==='激进'){
+    document.querySelector('[data-ch="dy"] [data-k="gmv"]').value=650;
+    document.querySelector('[data-ch="xhs"] [data-k="gmv"]').value=170;
+    document.querySelector('[data-ch="sph"] [data-k="gmv"]').value=65;
+    document.querySelector('[data-ch="dy"] [data-k="adRate"]').value=10;
+    document.querySelector('[data-ch="xhs"] [data-k="adRate"]').value=12;
+    document.querySelector('[data-ch="sph"] [data-k="adRate"]').value=7;
+  } else {
+    document.querySelector('[data-ch="dy"] [data-k="gmv"]').value=400;
+    document.querySelector('[data-ch="xhs"] [data-k="gmv"]').value=95;
+    document.querySelector('[data-ch="sph"] [data-k="gmv"]').value=25;
+    document.querySelector('[data-ch="dy"] [data-k="adRate"]').value=6;
+    document.querySelector('[data-ch="xhs"] [data-k="adRate"]').value=7;
+    document.querySelector('[data-ch="sph"] [data-k="adRate"]').value=3;
+  }
+  renderKPI();
+}
+</script>
+</body>
+</html>
