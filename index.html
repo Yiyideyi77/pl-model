@@ -1349,12 +1349,11 @@ function extGetChannel() {
 
 function extToggleChannel() {
   const ch = extGetChannel();
-  const dyPanel = document.getElementById('ext-douyin-panel');
   const agPanel = document.getElementById('ext-agent-panel');
-  dyPanel.style.display = (ch === 'douyin' || ch === 'both') ? '' : 'none';
-  agPanel.style.display = (ch === 'agent' || ch === 'both') ? '' : 'none';
-  dyPanel.classList.toggle('ext-full', ch === 'douyin');
-  agPanel.classList.toggle('ext-full', ch === 'agent');
+  if (agPanel) {
+    agPanel.style.display = (ch === 'agent' || ch === 'both') ? '' : 'none';
+    agPanel.classList.toggle('ext-full', ch === 'agent');
+  }
   extRender();
 }
 
