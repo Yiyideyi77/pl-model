@@ -367,6 +367,58 @@
   #ext-channels { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
   #ext-channels .panel.ext-full { grid-column: 1 / -1; }
 
+  /* 模块二：售卖结果 KPI */
+  .ext-result-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px;
+  }
+  .ext-rcard {
+    background: var(--panel-2); border-radius: 10px; padding: 12px 14px;
+    border: 1px solid var(--border); transition: box-shadow .2s;
+  }
+  .ext-rcard:hover { box-shadow: var(--shadow-md); }
+  .ext-rcard .rc-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .ext-rcard .rc-value { font-size: 18px; font-weight: 700; font-family: "SF Mono", Menlo, monospace; }
+  .ext-rcard .rc-sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .ext-rcard.pos .rc-value { color: var(--green); }
+  .ext-rcard.neg .rc-value { color: var(--red); }
+  .ext-rcard.warn .rc-value { color: var(--orange); }
+  .ext-rcard.highlight { background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%); border-color: var(--accent); }
+  .ext-rcard.highlight .rc-value { color: var(--accent); }
+
+  /* 模块三：档位 chips */
+  .ext-tier-chips {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 6px;
+    margin-bottom: 16px;
+  }
+  .ext-tchip {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 7px 6px; cursor: pointer; text-align: center; transition: all .2s;
+    box-shadow: var(--shadow-sm); user-select: none;
+  }
+  .ext-tchip:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .ext-tchip.active { background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%); border-color: var(--accent); box-shadow: 0 0 0 2px #2563eb33; }
+  .ext-tchip .tc-name { font-size: 12px; font-weight: 700; }
+  .ext-tchip .tc-sub { font-size: 10px; color: var(--muted); }
+
+  /* 方案测算表格 */
+  .ext-scenario-wrap { overflow-x: auto; margin-bottom: 16px; }
+  .ext-stbl { width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap; }
+  .ext-stbl th {
+    background: var(--panel-2); padding: 8px 10px; text-align: right;
+    font-weight: 600; border-bottom: 2px solid var(--border); color: var(--text);
+    position: sticky; top: 0; z-index: 1;
+  }
+  .ext-stbl th:first-child { text-align: left; }
+  .ext-stbl td {
+    padding: 6px 10px; text-align: right; border-bottom: 1px solid var(--border);
+    font-family: "SF Mono", Menlo, monospace; font-size: 11px;
+  }
+  .ext-stbl td:first-child { text-align: left; font-weight: 600; font-family: inherit; }
+  .ext-stbl tr:hover td { background: #f8fafc; }
+  .ext-stbl .neg { color: var(--red); }
+  .ext-stbl .pos { color: var(--green); }
+  .ext-stbl .hl-row td { background: #eff6ff44; }
+
   /* ============ 方案测算模块 ============ */
   .scenario-intro {
     background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%);
@@ -1201,7 +1253,20 @@
       </div>
     </div>
 
-    <!-- KPI 卡 -->
+    <!-- 模块二：优惠券售卖结果呈现 -->
+    <div class="panel" id="ext-result-panel" style="margin-top:16px">
+      <h3>📊 优惠券售卖结果呈现</h3>
+      <div class="ext-result-grid" id="ext-result-grid"></div>
+    </div>
+
+    <!-- 模块三：优惠券售卖方案 -->
+    <div class="panel" id="ext-scenario-panel" style="margin-top:16px">
+      <h3>📋 优惠券售卖方案</h3>
+      <div class="ext-tier-chips" id="ext-tier-chips"></div>
+      <div id="ext-scenario-tables"></div>
+    </div>
+
+    <!-- KPI（代理商等其他渠道） -->
     <div id="ext-kpis" style="margin-top:16px;display:flex;flex-direction:column;gap:16px"></div>
   </div>
 
@@ -1387,74 +1452,28 @@ function fmtMoney(v) {
   return v.toFixed(2);
 }
 
+const EXT_FUEL_TIERS_13 = [
+  { name: '200-20A', discount: 20, gaodeCost: 9.20 },
+  { name: '200-22A', discount: 22, gaodeCost: 11.00 },
+  { name: '200-24A', discount: 24, gaodeCost: 10.80 },
+  { name: '200-25B', discount: 25, gaodeCost: 12.75 },
+  { name: '200-26A', discount: 26, gaodeCost: 13.26 },
+  { name: '200-28A', discount: 28, gaodeCost: 17.64 },
+  { name: '200-30A', discount: 30, gaodeCost: 18.30 },
+  { name: '200-40A', discount: 40, gaodeCost: 31.60 },
+  { name: '200-50A', discount: 50, gaodeCost: 40.00 },
+  { name: '300-18A', discount: 18, gaodeCost: 6.84 },
+  { name: '300-22A', discount: 22, gaodeCost: 11.00 },
+  { name: '300-25A', discount: 25, gaodeCost: 12.75 },
+  { name: '300-30A', discount: 30, gaodeCost: 17.70 },
+];
+let extCurrentTier3 = '200-22A';
+
 function extRenderKpi(kpiEl, channel, params) {
   const discount = params.discount;
   const gaodeCost = params.cpCost;
 
-  if (channel === 'douyin') {
-    const d = extCalcDouyinDetail(discount, gaodeCost, params, params.sellPrice);
-    const bep = extCalcDouyin(discount, gaodeCost, params, 0);
-    const five = extCalcDouyin(discount, gaodeCost, params, 0.05);
-
-    kpiEl.innerHTML = `
-      <div class="ext-channel-head">
-        <span class="tag">📱 抖音自运营</span>
-        <span style="color:var(--muted);font-size:12px">优惠 ¥${discount} · 高德 ¥${gaodeCost} · 售价 ¥${params.sellPrice}</span>
-      </div>
-      <div class="ext-kpi-grid">
-        <div class="ext-kpi ${d.totalProfit >= 0 ? 'pos' : 'neg'}">
-          <div class="k-label">月度总利润</div>
-          <div class="k-value">¥${fmtMoney(d.totalProfit)}</div>
-          <div class="k-sub">利润率 ${(d.margin * 100).toFixed(2)}% · 月销 ${params.volume} 张</div>
-        </div>
-        <div class="ext-kpi pos">
-          <div class="k-label">保本售价 (0%)</div>
-          <div class="k-value">¥${bep.sellPrice.toFixed(2)}</div>
-          <div class="k-sub">利润率 0% 的最低售价</div>
-        </div>
-        <div class="ext-kpi pos">
-          <div class="k-label">5%利润率售价</div>
-          <div class="k-value">¥${five.sellPrice.toFixed(2)}</div>
-          <div class="k-sub">目标利润率 5%</div>
-        </div>
-        <div class="ext-kpi ${d.couponProfit >= 0 ? 'pos' : 'neg'}">
-          <div class="k-label">售券利润</div>
-          <div class="k-value">¥${fmtMoney(d.couponProfit)}</div>
-          <div class="k-sub">(¥${params.sellPrice}−¥${gaodeCost})×${d.redeemed.toFixed(0)}张</div>
-        </div>
-        <div class="ext-kpi pos">
-          <div class="k-label">订单利润</div>
-          <div class="k-value">¥${fmtMoney(d.orderProfit)}</div>
-          <div class="k-sub">¥${discount}×${params.orderMargin}%×${d.redeemed.toFixed(0)}</div>
-        </div>
-        <div class="ext-kpi ${d.darenCost > 0 ? 'warn' : 'pos'}">
-          <div class="k-label">达人成本</div>
-          <div class="k-value">¥${fmtMoney(d.darenCost)}</div>
-          <div class="k-sub">售价×核销GMV×${params.commission}%</div>
-        </div>
-        <div class="ext-kpi ${d.platCost > 0 ? 'warn' : 'pos'}">
-          <div class="k-label">平台成本</div>
-          <div class="k-value">¥${fmtMoney(d.platCost)}</div>
-          <div class="k-sub">售价×核销GMV×${params.platform}%</div>
-        </div>
-        <div class="ext-kpi ${d.invoiceCost > 0 ? 'warn' : 'pos'}">
-          <div class="k-label">发票成本</div>
-          <div class="k-value">¥${fmtMoney(d.invoiceCost)}</div>
-          <div class="k-sub">售价×${params.invoice}%×${params.volume}</div>
-        </div>
-        <div class="ext-kpi ${d.channelFee > 0 ? 'warn' : 'pos'}">
-          <div class="k-label">通道费</div>
-          <div class="k-value">¥${fmtMoney(d.channelFee)}</div>
-          <div class="k-sub">售价×${params.channelRate}‰×${params.volume}</div>
-        </div>
-        <div class="ext-kpi ${d.fixed > 0 ? 'warn' : 'pos'}">
-          <div class="k-label">运营成本</div>
-          <div class="k-value">¥${fmtMoney(d.fixed)}</div>
-          <div class="k-sub">月度固定支出</div>
-        </div>
-      </div>`;
-  } else {
-    // 代理商
+  if (channel === 'agent') {
     const buyPrice = discount * params.buyRate / 100;
     const platProfit = buyPrice - gaodeCost;
     const platMargin = buyPrice > 0 ? platProfit / buyPrice : 0;
@@ -1491,21 +1510,183 @@ function extRenderKpi(kpiEl, channel, params) {
   }
 }
 
+/* 模块二：售卖结果呈现 */
+function extRenderResult(params) {
+  const grid = document.getElementById('ext-result-grid');
+  if (!grid) return;
+  const d = extCalcDouyinDetail(params.discount, params.cpCost, params, params.sellPrice);
+  const P = params.sellPrice, V = params.volume, C = params.cpCost, D = params.discount;
+  const R = params.redeem / 100;
+  const redeemed = V * R;
+  const expired = V * (1 - R);
+  const gmv = P * V;
+  const couponProfit = (P - C) * redeemed;
+  const expiredProfit = P * expired;
+  const orderComm = D * (params.orderMargin / 100) * redeemed;
+  const darenCost = P * redeemed * (params.commission / 100);
+  const adCost = P * redeemed * (params.ad / 100);
+  const platCost = P * redeemed * (params.platform / 100);
+  const netProfit = d.totalProfit;
+  const netMargin = gmv > 0 ? netProfit / gmv : 0;
+
+  const cards = [
+    { label: 'GMV', value: `¥${fmtMoney(gmv)}`, sub: `¥${P} × ${V}`, cls: 'highlight' },
+    { label: '订单量', value: V.toLocaleString(), sub: '月销量', cls: '' },
+    { label: '券售卖利润额', value: `¥${fmtMoney(couponProfit)}`, sub: `(¥${P}−¥${C})×${redeemed.toFixed(0)}`, cls: couponProfit >= 0 ? 'pos' : 'neg' },
+    { label: '核销订单佣金额', value: `¥${fmtMoney(orderComm)}`, sub: `¥${D}×${params.orderMargin}%×${redeemed.toFixed(0)}`, cls: 'pos' },
+    { label: '过期利润', value: `¥${fmtMoney(expiredProfit)}`, sub: `¥${P}×${expired.toFixed(0)}张未核销`, cls: expired > 0 ? 'pos' : '' },
+    { label: '净利润', value: `¥${fmtMoney(netProfit)}`, sub: '含发票/通道费/运营成本', cls: netProfit >= 0 ? 'pos' : 'neg' },
+    { label: '净利率', value: `${(netMargin * 100).toFixed(2)}%`, sub: `净利润/GMV`, cls: netMargin >= 0 ? 'pos' : 'neg' },
+    { label: '达人佣金额', value: `¥${fmtMoney(darenCost)}`, sub: `核销GMV×${params.commission}%`, cls: darenCost > 0 ? 'warn' : '' },
+    { label: '投流费用', value: `¥${fmtMoney(adCost)}`, sub: `核销GMV×${params.ad}%`, cls: adCost > 0 ? 'warn' : '' },
+    { label: '平台抽佣', value: `¥${fmtMoney(platCost)}`, sub: `核销GMV×${params.platform}%`, cls: platCost > 0 ? 'warn' : '' },
+  ];
+  grid.innerHTML = cards.map(c =>
+    `<div class="ext-rcard ${c.cls}">
+      <div class="rc-label">${c.label}</div>
+      <div class="rc-value">${c.value}</div>
+      <div class="rc-sub">${c.sub}</div>
+    </div>`
+  ).join('');
+}
+
+/* 模块三：档位 chips */
+function extRenderTierChips() {
+  const wrap = document.getElementById('ext-tier-chips');
+  if (!wrap) return;
+  wrap.innerHTML = EXT_FUEL_TIERS_13.map(t =>
+    `<div class="ext-tchip ${t.name === extCurrentTier3 ? 'active' : ''}" data-tier="${t.name}">
+      <div class="tc-name">${t.name}</div>
+      <div class="tc-sub">优惠 ¥${t.discount} · 高德 ¥${t.gaodeCost}</div>
+    </div>`
+  ).join('');
+  wrap.querySelectorAll('.ext-tchip').forEach(el => {
+    el.addEventListener('click', () => {
+      const t = EXT_FUEL_TIERS_13.find(x => x.name === el.dataset.tier);
+      if (!t) return;
+      extCurrentTier3 = t.name;
+      extSetVal('ext.discount', t.discount);
+      extSetVal('ext.cpCost', t.gaodeCost);
+      extSetVal('ext.dy.price', t.discount);
+      extRenderTierChips();
+      extRenderResult(extBuildParams());
+      extRenderScenarioTables(extBuildParams());
+    });
+  });
+}
+
+/* 模块三：方案测算表 */
+function extScenarioRow(discount, gaodeCost, params, commissionOverride, marginOverride) {
+  const p = { ...params, commission: commissionOverride };
+  const bep = extCalcDouyin(discount, gaodeCost, p, marginOverride);
+  const P = bep.sellPrice;
+  const V = params.volume;
+  const R = params.redeem / 100;
+  const redeemed = V * R;
+  const expired = V * (1 - R);
+
+  const couponProfit = (P - gaodeCost) * redeemed;
+  const expiredProfit = P * expired;
+  const orderComm = discount * (params.orderMargin / 100) * redeemed;
+  const darenCost = P * redeemed * (commissionOverride / 100);
+  const adCost = P * redeemed * (params.ad / 100);
+  const platCost = P * redeemed * (params.platform / 100);
+  const invoiceCost = P * (params.invoice / 100) * V;
+  const channelFee = P * (params.channelRate / 1000) * V;
+  const totalCosts = gaodeCost * redeemed + darenCost + adCost + platCost + invoiceCost + channelFee + params.fixed;
+  const netProfit = couponProfit + expiredProfit + orderComm - totalCosts;
+  const gmv = P * V;
+  const totalRevenue = couponProfit + expiredProfit + orderComm;
+  const totalFees = darenCost + adCost + platCost;
+
+  return { P, gmv, orderComm, netProfit, volume: V, gaodeTotal: gaodeCost * redeemed, platCost, darenCost, adCost, totalFees, totalRevenue };
+}
+
+function extBuildScenarioTable(rows, headerLabel) {
+  const cols = ['售价', 'GMV', '订单佣金', '净利润', '销量', '核销券成本', '平台费', '达人佣金额', '投流费用', '总费用', '总收入'];
+  let html = '<div class="ext-scenario-wrap"><table class="ext-stbl"><thead><tr>';
+  html += `<th>${headerLabel}</th>`;
+  cols.forEach(c => { html += `<th>${c}</th>`; });
+  html += '</tr></thead><tbody>';
+  rows.forEach(r => {
+    const npCls = r.netProfit >= 0 ? 'pos' : 'neg';
+    html += `<tr${r.highlight ? ' class="hl-row"' : ''}>`;
+    html += `<td>${r.label}</td>`;
+    html += `<td>¥${r.P.toFixed(2)}</td>`;
+    html += `<td>¥${fmtMoney(r.gmv)}</td>`;
+    html += `<td>¥${fmtMoney(r.orderComm)}</td>`;
+    html += `<td class="${npCls}">¥${fmtMoney(r.netProfit)}</td>`;
+    html += `<td>${r.volume.toLocaleString()}</td>`;
+    html += `<td>¥${fmtMoney(r.gaodeTotal)}</td>`;
+    html += `<td>¥${fmtMoney(r.platCost)}</td>`;
+    html += `<td>¥${fmtMoney(r.darenCost)}</td>`;
+    html += `<td>¥${fmtMoney(r.adCost)}</td>`;
+    html += `<td>¥${fmtMoney(r.totalFees)}</td>`;
+    html += `<td>¥${fmtMoney(r.totalRevenue)}</td>`;
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  return html;
+}
+
+function extRenderScenarioTables(params) {
+  const container = document.getElementById('ext-scenario-tables');
+  if (!container) return;
+  const tier = EXT_FUEL_TIERS_13.find(t => t.name === extCurrentTier3);
+  if (!tier) return;
+  const D = tier.discount, C = tier.gaodeCost;
+
+  // 方案一：达人佣金固定5%，按净利润率测算
+  const margins = [-1, 0, 0.5, 1, 2, 3, 5, 6, 8, 10, 12, 15];
+  const rows1 = margins.map(m => {
+    const r = extScenarioRow(D, C, params, 5, m / 100);
+    r.label = `${m}%`;
+    r.highlight = (m === 0 || m === 3 || m === 5);
+    return r;
+  });
+
+  // 方案二：净利率固定3%，按达人佣金率测算
+  const commissions = [0.5, 1, 2, 3, 5, 6, 7, 8];
+  const rows2 = commissions.map(c => {
+    const r = extScenarioRow(D, C, params, c, 0.03);
+    r.label = `${c}%`;
+    r.highlight = (c === 3 || c === 5);
+    return r;
+  });
+
+  container.innerHTML = `
+    <div style="font-size:13px;font-weight:600;margin:12px 0 6px;color:var(--text)">
+      方案一 · 达人佣金固定 5% <span style="color:var(--muted);font-weight:400;font-size:12px">当前档位 ${tier.name} · 优惠 ¥${D} · 高德 ¥${C}</span>
+    </div>
+    ${extBuildScenarioTable(rows1, '净利润率')}
+    <div style="font-size:13px;font-weight:600;margin:20px 0 6px;color:var(--text)">
+      方案二 · 净利率固定 3% <span style="color:var(--muted);font-weight:400;font-size:12px">当前档位 ${tier.name} · 优惠 ¥${D} · 高德 ¥${C}</span>
+    </div>
+    ${extBuildScenarioTable(rows2, '达人佣金率')}
+  `;
+}
+
 function extRender() {
   if (!extInited) return;
   const p = extBuildParams();
   extUpdateHints(p);
 
   const ch = extGetChannel();
+
+  // 模块二 + 模块三（仅抖音自运营或双渠道时显示）
+  const resultPanel = document.getElementById('ext-result-panel');
+  const scenarioPanel = document.getElementById('ext-scenario-panel');
+  const showDy = (ch === 'douyin' || ch === 'both');
+  if (resultPanel) resultPanel.style.display = showDy ? '' : 'none';
+  if (scenarioPanel) scenarioPanel.style.display = showDy ? '' : 'none';
+  if (showDy) {
+    extRenderResult(p);
+    extRenderScenarioTables(p);
+  }
+
+  // 代理商 KPI
   const kpiEl = document.getElementById('ext-kpis');
   kpiEl.innerHTML = '';
-
-  if (ch === 'douyin' || ch === 'both') {
-    const div = document.createElement('div');
-    div.className = 'panel';
-    kpiEl.appendChild(div);
-    extRenderKpi(div, 'douyin', p);
-  }
   if (ch === 'agent' || ch === 'both') {
     const div = document.createElement('div');
     div.className = 'panel';
@@ -1517,6 +1698,7 @@ function extRender() {
 function initExternal() {
   if (extInited) { extRender(); return; }
   extInited = true;
+  extRenderTierChips();
   const ids = [
     'ext.discount','ext.cpCost','ext.redeem','ext.orderMargin','ext.volume','ext.fixed',
     'ext.dy.commission','ext.dy.ad','ext.dy.platform','ext.dy.price',
@@ -1526,7 +1708,19 @@ function initExternal() {
   ids.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
-    el.addEventListener('input', extRender);
+    el.addEventListener('input', () => {
+      if (id === 'ext.discount' || id === 'ext.cpCost') {
+        const d = extGetVal('ext.discount');
+        const match = EXT_FUEL_TIERS_13.find(t => Math.abs(t.discount - d) < 0.01 && Math.abs(t.gaodeCost - extGetVal('ext.cpCost')) < 0.01);
+        if (match) extCurrentTier3 = match.name;
+        else {
+          const match2 = EXT_FUEL_TIERS_13.find(t => Math.abs(t.discount - d) < 0.01);
+          if (match2) extCurrentTier3 = match2.name;
+        }
+        extRenderTierChips();
+      }
+      extRender();
+    });
   });
   document.querySelectorAll('input[name="ext.channel"]').forEach(r => {
     r.addEventListener('change', extToggleChannel);
