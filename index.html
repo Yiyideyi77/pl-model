@@ -1264,6 +1264,16 @@
         <div class="combo-items" id="ext-combo-items"></div>
         <div class="combo-summary" id="ext-combo-summary"></div>
       </div>
+      <div style="display:flex;gap:16px;align-items:center;margin:12px 0 8px;flex-wrap:wrap">
+        <div class="field with-suffix" data-suffix="%" style="min-width:160px">
+          <label>达人分佣率（方案一固定值）</label>
+          <input type="number" class="num-input pct" id="ext.sc.fixedComm" value="5" min="0" max="100" step="0.5" autocomplete="off">
+        </div>
+        <div class="field with-suffix" data-suffix="%" style="min-width:160px">
+          <label>目标净利率（方案二固定值）</label>
+          <input type="number" class="num-input pct" id="ext.sc.fixedMargin" value="3" min="-100" max="100" step="0.5" autocomplete="off">
+        </div>
+      </div>
       <div id="ext-scenario-tables"></div>
     </div>
 
@@ -1739,19 +1749,21 @@ function extRenderScenarioTables(params) {
     return it.qty > 1 ? `${t.name}×${it.qty}` : t.name;
   }).join(' + ');
 
-  // 方案一：达人佣金固定5%，按净利润率测算
+  // 方案一：达人佣金固定（可调配），按净利润率测算
+  const fixedComm = extGetVal('ext.sc.fixedComm');
   const margins = [-1, 0, 0.5, 1, 2, 3, 5, 6, 8, 10, 12, 15];
   const rows1 = margins.map(m => {
-    const r = extScenarioRow(D, C, params, 5, m / 100);
+    const r = extScenarioRow(D, C, params, fixedComm, m / 100);
     r.label = `${m}%`;
     r.highlight = (m === 0 || m === 3 || m === 5);
     return r;
   });
 
-  // 方案二：净利率固定3%，按达人佣金率测算
+  // 方案二：净利率固定（可调配），按达人佣金率测算
+  const fixedMargin = extGetVal('ext.sc.fixedMargin') / 100;
   const commissions = [0.5, 1, 2, 3, 5, 6, 7, 8];
   const rows2 = commissions.map(c => {
-    const r = extScenarioRow(D, C, params, c, 0.03);
+    const r = extScenarioRow(D, C, params, c, fixedMargin);
     r.label = `${c}%`;
     r.highlight = (c === 3 || c === 5);
     return r;
@@ -1759,11 +1771,11 @@ function extRenderScenarioTables(params) {
 
   container.innerHTML = `
     <div style="font-size:13px;font-weight:600;margin:12px 0 6px;color:var(--text)">
-      方案一 · 达人佣金固定 5% <span style="color:var(--muted);font-weight:400;font-size:12px">组合 ${comboName} · 优惠 ¥${D} · 高德 ¥${C.toFixed(2)}</span>
+      方案一 · 达人佣金固定 ${fixedComm}% <span style="color:var(--muted);font-weight:400;font-size:12px">组合 ${comboName} · 优惠 ¥${D} · 高德 ¥${C.toFixed(2)}</span>
     </div>
     ${extBuildScenarioTable(rows1, '净利润率')}
     <div style="font-size:13px;font-weight:600;margin:20px 0 6px;color:var(--text)">
-      方案二 · 净利率固定 3% <span style="color:var(--muted);font-weight:400;font-size:12px">组合 ${comboName} · 优惠 ¥${D} · 高德 ¥${C.toFixed(2)}</span>
+      方案二 · 净利率固定 ${(fixedMargin * 100).toFixed(1)}% <span style="color:var(--muted);font-weight:400;font-size:12px">组合 ${comboName} · 优惠 ¥${D} · 高德 ¥${C.toFixed(2)}</span>
     </div>
     ${extBuildScenarioTable(rows2, '达人佣金率')}
   `;
@@ -1819,6 +1831,7 @@ function initExternal() {
     'ext.discount','ext.cpCost','ext.redeem','ext.orderMargin','ext.volume','ext.fixed',
     'ext.dy.commission','ext.dy.ad','ext.dy.platform','ext.dy.price',
     'ext.dy.invoice','ext.dy.channel',
+    'ext.sc.fixedComm','ext.sc.fixedMargin',
     'ext.ag.buyRate','ext.ag.ad'
   ];
   ids.forEach(id => {
