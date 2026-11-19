@@ -1119,6 +1119,10 @@
               <label>月销量</label>
               <input type="number" class="num-input pct" id="ext.volume" value="5400" min="0" step="100" autocomplete="off">
             </div>
+            <div class="field with-suffix" data-suffix="%">
+              <label>运营成本率</label>
+              <input type="number" class="num-input pct" id="ext.opsRate" value="0" min="0" max="100" step="0.1" autocomplete="off">
+            </div>
           </div>
         </div>
         <div>
@@ -1276,12 +1280,13 @@ function extCalcDouyin(discount, gaodeCost, params, targetMargin) {
   const platR = params.platform / 100;
   const invR = params.invoice / 100;
   const chanR = params.channelRate / 1000; // ‰ → decimal
+  const opsR = (params.opsRate || 0) / 100;
   const V = params.volume || 1;
   const fixed = params.fixed;
 
   // 反推售价
   const numer = gaodeCost * R - discount * orderM * R + fixed / V;
-  const denom = R - R * commR - R * platR - invR - chanR - targetMargin;
+  const denom = R - R * commR - R * platR - invR - chanR - opsR - targetMargin;
   let sellPrice = 0;
   if (denom > 0.0001) sellPrice = numer / denom;
 
@@ -1296,6 +1301,7 @@ function extCalcDouyinDetail(discount, gaodeCost, params, sellPrice) {
   const platR = params.platform / 100;
   const invR = params.invoice / 100;
   const chanR = params.channelRate / 1000;
+  const opsR = (params.opsRate || 0) / 100;
   const V = params.volume;
   const fixed = params.fixed;
 
@@ -1306,13 +1312,14 @@ function extCalcDouyinDetail(discount, gaodeCost, params, sellPrice) {
   const platCost = sellPrice * redeemed * platR;
   const invoiceCost = sellPrice * invR * V;
   const channelFee = sellPrice * chanR * V;
-  const totalProfit = couponProfit + orderProfit - darenCost - platCost - invoiceCost - channelFee - fixed;
+  const opsCost = sellPrice * opsR * V;
+  const totalProfit = couponProfit + orderProfit - darenCost - platCost - invoiceCost - channelFee - opsCost - fixed;
   const revenue = sellPrice * V;
   const margin = revenue > 0 ? totalProfit / revenue : 0;
 
   return {
     redeemed, couponProfit, orderProfit, darenCost, platCost,
-    invoiceCost, channelFee, fixed, totalProfit, revenue, margin, sellPrice
+    invoiceCost, channelFee, opsCost, fixed, totalProfit, revenue, margin, sellPrice
   };
 }
 
@@ -1371,6 +1378,7 @@ function extBuildParams() {
     platform: 1,
     invoice: 6,
     channelRate: 3,
+    opsRate: extGetVal('ext.opsRate'),
     sellPrice: 0,
     // 授权代理商
     buyRate: extGetVal('ext.ag.buyRate'),
@@ -1412,6 +1420,7 @@ function extRenderModule1(params) {
   const platCost = P * redeemed * (params.platform / 100);
   const invCost = P * (params.invoice / 100) * V;
   const chanCost = P * (params.channelRate / 1000) * V;
+  const opsCost = P * ((params.opsRate || 0) / 100) * V;
 
   costEl.innerHTML = [
     `<div>高德成本 <b>¥${C.toFixed(2)}</b></div>`,
@@ -1420,13 +1429,13 @@ function extRenderModule1(params) {
     `<div>平台佣金率 <b>${params.platform}%</b> → ¥${platCost.toFixed(2)}</div>`,
     `<div>用户发票 <b>${params.invoice}%</b> → ¥${invCost.toFixed(2)}</div>`,
     `<div>订单通道费 <b>${params.channelRate}‰</b> → ¥${chanCost.toFixed(2)}</div>`,
-    `<div>运营成本 <b>¥0</b></div>`,
+    `<div>运营成本率 <b>${params.opsRate || 0}%</b> → ¥${opsCost.toFixed(2)}</div>`,
   ].join('');
 
   // 利润展示
   const couponProfit = (P - C) * redeemed;
   const orderProfit = D * (params.orderMargin / 100) * redeemed;
-  const totalProfit = couponProfit + orderProfit - commCost - platCost - invCost - chanCost;
+  const totalProfit = couponProfit + orderProfit - commCost - platCost - invCost - chanCost - opsCost;
 
   profitEl.innerHTML = [
     `<div>售券利润 = (¥${P.toFixed(2)} − ¥${C.toFixed(2)}) × ${redeemed.toFixed(0)} = <b style="color:${couponProfit >= 0 ? 'var(--green)' : 'var(--red)'}">¥${fmtMoney(couponProfit)}</b></div>`,
@@ -1435,6 +1444,7 @@ function extRenderModule1(params) {
     `<div>− 平台成本 <b style="color:var(--red)">¥${fmtMoney(platCost)}</b></div>`,
     `<div>− 用户发票 <b style="color:var(--red)">¥${fmtMoney(invCost)}</b></div>`,
     `<div>− 通道费 <b style="color:var(--red)">¥${fmtMoney(chanCost)}</b></div>`,
+    `<div>− 运营成本 <b style="color:var(--red)">¥${fmtMoney(opsCost)}</b></div>`,
     `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);font-weight:700;font-size:13px">`,
     `总利润 <b style="color:${totalProfit >= 0 ? 'var(--green)' : 'var(--red)'}">¥${fmtMoney(totalProfit)}</b></div>`,
   ].join('');
@@ -1639,7 +1649,8 @@ function extRenderResult(params) {
   // 完整利润公式
   const invoiceCost = P * (params.invoice / 100) * V;
   const channelFee = P * (params.channelRate / 1000) * V;
-  const netProfit = couponProfit + expiredProfit + orderComm - C * redeemed - darenCost - adCost - platCost - invoiceCost - channelFee - params.fixed;
+  const opsCost = P * ((params.opsRate || 0) / 100) * V;
+  const netProfit = couponProfit + expiredProfit + orderComm - C * redeemed - darenCost - adCost - platCost - invoiceCost - channelFee - opsCost - params.fixed;
   const netMargin = gmv > 0 ? netProfit / gmv : 0;
 
   const cards = [
@@ -1681,7 +1692,8 @@ function extScenarioRow(discount, gaodeCost, params, commissionOverride, marginO
   const platCost = P * redeemed * (params.platform / 100);
   const invoiceCost = P * (params.invoice / 100) * V;
   const channelFee = P * (params.channelRate / 1000) * V;
-  const totalCosts = gaodeCost * redeemed + darenCost + adCost + platCost + invoiceCost + channelFee + params.fixed;
+  const opsCost = P * ((params.opsRate || 0) / 100) * V;
+  const totalCosts = gaodeCost * redeemed + darenCost + adCost + platCost + invoiceCost + channelFee + opsCost + params.fixed;
   const netProfit = couponProfit + expiredProfit + orderComm - totalCosts;
   const gmv = P * V;
   const totalRevenue = couponProfit + expiredProfit + orderComm;
@@ -1768,9 +1780,10 @@ function extRender() {
   const p = extBuildParams();
   extUpdateHints(p);
 
-  // 计算保本售价供模块一利润展示
-  const bep = extCalcDouyin(p.discount, p.cpCost, p, 0);
-  p.sellPrice = bep.sellPrice;
+  // 用目标净利率计算售价供模块一利润展示（非保本）
+  const targetMargin = (extGetVal('ext.sc.fixedMargin') || 3) / 100;
+  const priced = extCalcDouyin(p.discount, p.cpCost, p, targetMargin);
+  p.sellPrice = priced.sellPrice;
 
   // 模块一始终显示
   extRenderModule1(p);
@@ -1819,7 +1832,7 @@ function initExternal() {
   });
 
   const ids = [
-    'ext.redeem','ext.orderMargin','ext.volume',
+    'ext.redeem','ext.orderMargin','ext.volume','ext.opsRate',
     'ext.sc.fixedComm','ext.sc.fixedMargin',
     'ext.ag.buyRate','ext.ag.ad'
   ];
