@@ -1086,10 +1086,10 @@
   <div class="section" id="sec-external">
     <div class="panel" style="margin-bottom:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
-        <h3 style="margin-bottom:0">渠道选择 <span class="sub">双渠道共用档位参数，损益独立测算</span></h3>
-        <div class="ext-channel-toggle" id="ext-channel-toggle" style="flex:0 0 auto;max-width:560px">
-          <label><input type="radio" name="ext.channel" value="douyin" checked> 📱 抖音（自找主播 + 投流）</label>
-          <label><input type="radio" name="ext.channel" value="supplier"> 🏢 供应商代售</label>
+        <h3 style="margin-bottom:0">渠道选择 <span class="sub">多渠道共用档位参数，损益独立测算</span></h3>
+        <div class="ext-channel-toggle" id="ext-channel-toggle" style="flex:0 0 auto;max-width:640px">
+          <label><input type="radio" name="ext.channel" value="douyin" checked> 📱 抖音自运营</label>
+          <label><input type="radio" name="ext.channel" value="agent"> 🏢 授权代理商</label>
           <label><input type="radio" name="ext.channel" value="both"> 📊 双渠道并列</label>
         </div>
       </div>
@@ -1097,7 +1097,7 @@
 
     <!-- 档位参数（共用，全宽） -->
     <div class="panel" style="margin-bottom:20px">
-      <h3>档位与共用参数 <span class="sub">双渠道共用，点击档位快速填入</span></h3>
+      <h3>档位与共用参数 <span class="sub">多渠道共用，点击档位快速填入</span></h3>
 
       <div class="section-divider">加油券档位（点击快速填入）</div>
       <div class="tier-grid" id="ext-tiers"></div>
@@ -1108,13 +1108,13 @@
           <div class="field-group">
             <div class="field with-suffix" data-suffix="元">
               <label>优惠金额</label>
-              <input type="number" class="num-input pct" id="ext.discount" value="15" min="0" step="0.5" autocomplete="off">
-              <div class="hint" id="ext.cost.hint">CP 成本 6 元</div>
+              <input type="number" class="num-input pct" id="ext.discount" value="22" min="0" step="0.5" autocomplete="off">
+              <div class="hint" id="ext.cost.hint">高德成本 11 元</div>
             </div>
             <div class="field with-suffix" data-suffix="元">
-              <label>CP 成本</label>
-              <input type="number" class="num-input pct" id="ext.cpCost" value="6" min="0" step="0.1" autocomplete="off">
-              <div class="hint" id="ext.cpCost.hint">成本率 40%</div>
+              <label>高德成本(底价)</label>
+              <input type="number" class="num-input pct" id="ext.cpCost" value="11" min="0" step="0.1" autocomplete="off">
+              <div class="hint" id="ext.cpCost.hint">成本率 50%</div>
             </div>
           </div>
         </div>
@@ -1151,15 +1151,15 @@
 
     <!-- 渠道参数（2 列，单渠道时占满全宽） -->
     <div id="ext-channels" style="margin-bottom:20px">
-      <!-- 抖音参数面板 -->
+      <!-- 抖音自运营参数面板 -->
       <div class="panel" id="ext-douyin-panel">
-        <h3>📱 抖音渠道参数</h3>
+        <h3>📱 抖音自运营参数</h3>
         <div class="ext-ch-body">
           <div>
-            <div class="section-divider">成本项（按券销售额计）</div>
+            <div class="section-divider">费用项（按券售价计）</div>
             <div class="field-group-3">
               <div class="field with-suffix" data-suffix="%">
-                <label>达人佣金率</label>
+                <label>达人分佣</label>
                 <input type="number" class="num-input pct" id="ext.dy.commission" value="0" min="0" max="100" step="0.1" autocomplete="off">
                 <div class="hint">自找主播可设 0</div>
               </div>
@@ -1168,23 +1168,23 @@
                 <input type="number" class="num-input pct" id="ext.dy.ad" value="5" min="0" max="100" step="0.1" autocomplete="off">
               </div>
               <div class="field with-suffix" data-suffix="%">
-                <label>平台费率</label>
+                <label>平台抽佣</label>
                 <input type="number" class="num-input pct" id="ext.dy.platform" value="1" min="0" max="100" step="0.1" autocomplete="off">
               </div>
             </div>
           </div>
           <div>
-            <div class="section-divider">定价</div>
+            <div class="section-divider">定价参考</div>
             <div class="field-group">
               <div class="field with-suffix" data-suffix="元">
-                <label>券售价</label>
-                <input type="number" class="num-input pct" id="ext.dy.price" value="15" min="0" step="0.1" autocomplete="off">
-                <div class="hint" id="ext.dy.price.hint">= 档位原价（原售价），可手动调整</div>
+                <label>当前档位参考价</label>
+                <input type="number" class="num-input pct" id="ext.dy.price" value="22" min="0" step="0.1" autocomplete="off">
+                <div class="hint" id="ext.dy.price.hint">手动调整，矩阵自动算各利润率售价</div>
               </div>
               <div class="field">
                 <label>&nbsp;</label>
                 <div class="formula-box" style="margin:0">
-                  <div class="f-title" style="font-size:11px">抖音固定成本率合计</div>
+                  <div class="f-title" style="font-size:11px">费用率合计</div>
                   <div class="formula-expr" id="ext.dy.totalRate" style="font-size:14px">6.0%</div>
                 </div>
               </div>
@@ -1193,47 +1193,41 @@
         </div>
       </div>
 
-      <!-- 供应商参数面板 -->
-      <div class="panel" id="ext-supplier-panel" style="display:none">
-        <h3>🏢 供应商渠道参数</h3>
+      <!-- 授权代理商参数面板 -->
+      <div class="panel" id="ext-agent-panel" style="display:none">
+        <h3>🏢 授权代理商参数</h3>
         <div class="ext-ch-body">
           <div>
-            <div class="section-divider">提货与分润</div>
-            <div class="field-group-3">
+            <div class="section-divider">提货价设置</div>
+            <div class="field-group">
               <div class="field with-suffix" data-suffix="%">
-                <label>供应商提货价 / 优惠金额</label>
-                <input type="number" class="num-input pct" id="ext.sp.buyRate" value="85" min="0" max="100" step="0.5" autocomplete="off">
-                <div class="hint">即供应商按优惠金额 85% 提货</div>
-              </div>
-              <div class="field with-suffix" data-suffix="%">
-                <label>平台 CP 分摊比例</label>
-                <input type="number" class="num-input pct" id="ext.sp.platformShare" value="100" min="0" max="100" step="1" autocomplete="off">
-                <div class="hint">默认 100% 平台垫付</div>
-              </div>
-              <div class="field with-suffix" data-suffix="%">
-                <label>系统分摊 / 优惠金额</label>
-                <input type="number" class="num-input pct" id="ext.sp.sysRate" value="2" min="0" max="100" step="0.1" autocomplete="off">
-              </div>
-            </div>
-          </div>
-          <div>
-            <div class="section-divider">供应商收益</div>
-            <div class="field-group-3">
-              <div class="field with-suffix" data-suffix="%">
-                <label>返利 / 优惠金额</label>
-                <input type="number" class="num-input pct" id="ext.sp.rebateRate" value="2" min="0" max="100" step="0.1" autocomplete="off">
-              </div>
-              <div class="field with-suffix" data-suffix="元">
-                <label>供应商单张毛利</label>
-                <input type="number" class="num-input pct" id="ext.sp.supplierProfit" value="2.3" min="0" step="0.1" autocomplete="off">
-                <div class="hint">优惠金额 − 提货价</div>
+                <label>提货价 / 优惠金额</label>
+                <input type="number" class="num-input pct" id="ext.ag.buyRate" value="85" min="0" max="100" step="0.5" autocomplete="off">
+                <div class="hint">代理商按优惠金额 × 此比例提货</div>
               </div>
               <div class="field">
                 <label>&nbsp;</label>
                 <div class="formula-box" style="margin:0">
-                  <div class="f-title" style="font-size:11px">供应商提货价</div>
-                  <div class="formula-expr" id="ext.sp.buyPrice" style="font-size:14px">12.8 元</div>
+                  <div class="f-title" style="font-size:11px">代理商提货价</div>
+                  <div class="formula-expr" id="ext.ag.buyPrice" style="font-size:14px">18.7 元</div>
                 </div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="section-divider">代理商费用</div>
+            <div class="field-group-3">
+              <div class="field with-suffix" data-suffix="%">
+                <label>代理商投流</label>
+                <input type="number" class="num-input pct" id="ext.ag.ad" value="5" min="0" max="100" step="0.5" autocomplete="off">
+              </div>
+              <div class="field with-suffix" data-suffix="%">
+                <label>代理商达人佣金</label>
+                <input type="number" class="num-input pct" id="ext.ag.commission" value="0" min="0" max="100" step="0.1" autocomplete="off">
+              </div>
+              <div class="field with-suffix" data-suffix="%">
+                <label>平台抽佣</label>
+                <input type="number" class="num-input pct" id="ext.ag.platform" value="1" min="0" max="100" step="0.1" autocomplete="off">
               </div>
             </div>
           </div>
@@ -1248,7 +1242,7 @@
     <div class="biz-scenario" style="margin-top:16px">
       <h3>
         📋 全档位损益明细
-        <span class="sub">13 档加油券（门槛 200 元）单券利润与月度测算</span>
+        <span class="sub">13 档加油券 · 利润率阶梯（0% / 0.5% / 1% / 3% / 5%）反推售价</span>
         <span class="tier-indicator" id="ext-current-tier">
           <span class="ti-dot"></span>
           <span class="ti-text">当前档位</span>
@@ -1296,77 +1290,94 @@ document.querySelectorAll('.tab').forEach(t => {
 
 /* ============ 端外售券 ============ */
 const EXT_FUEL_TIERS = [
-  { name: '200-8',  discount: 8,  cpCost: 0.5, origPrice: 8 },
-  { name: '200-9',  discount: 9,  cpCost: 1,   origPrice: 9 },
-  { name: '200-10', discount: 10, cpCost: 2,   origPrice: 10 },
-  { name: '200-12', discount: 12, cpCost: 3,   origPrice: 12 },
-  { name: '200-15', discount: 15, cpCost: 6,   origPrice: 15 },
-  { name: '200-16', discount: 16, cpCost: 8,   origPrice: 16 },
-  { name: '200-18', discount: 18, cpCost: 8.5, origPrice: 18 },
-  { name: '200-20', discount: 20, cpCost: 12,  origPrice: 20 },
-  { name: '200-22', discount: 22, cpCost: 13,  origPrice: 22 },
-  { name: '200-25', discount: 25, cpCost: 15,  origPrice: 25 },
-  { name: '200-28', discount: 28, cpCost: 19,  origPrice: 28 },
-  { name: '200-30', discount: 30, cpCost: 22,  origPrice: 30 },
-  { name: '200-50', discount: 50, cpCost: 43,  origPrice: 50 },
+  { name: '200-20A', discount: 20, gaodeCost: 9.20,  profit: 10.80 },
+  { name: '200-22A', discount: 22, gaodeCost: 11.00, profit: 11.00 },
+  { name: '200-24A', discount: 24, gaodeCost: 10.80, profit: 13.20 },
+  { name: '200-25B', discount: 25, gaodeCost: 12.75, profit: 12.25 },
+  { name: '200-26A', discount: 26, gaodeCost: 13.26, profit: 12.74 },
+  { name: '200-28A', discount: 28, gaodeCost: 17.64, profit: 10.36 },
+  { name: '200-30A', discount: 30, gaodeCost: 18.30, profit: 11.70 },
+  { name: '200-40A', discount: 40, gaodeCost: 31.60, profit: 8.40 },
+  { name: '200-50A', discount: 50, gaodeCost: 40.00, profit: 10.00 },
+  { name: '300-18A', discount: 18, gaodeCost: 6.84,  profit: 11.16 },
+  { name: '300-22A', discount: 22, gaodeCost: 11.00, profit: 11.00 },
+  { name: '300-25A', discount: 25, gaodeCost: 12.75, profit: 12.25 },
+  { name: '300-30A', discount: 30, gaodeCost: 17.70, profit: 12.30 },
 ];
+const EXT_PROFIT_TIERS = [0, 0.005, 0.01, 0.03, 0.05]; // 利润率阶梯
 let extInited = false;
-let extCurrentTier = '200-15';
+let extCurrentTier = '200-22A';
 
 function extGetVal(id) {
-  const v = parseFloat(document.getElementById(id).value);
+  const v = parseFloat(document.getElementById(id)?.value);
   return isNaN(v) ? 0 : v;
 }
+function extSetVal(id, v) { const el = document.getElementById(id); if (el) el.value = v; }
 
-function extSetVal(id, v) {
-  const el = document.getElementById(id);
-  if (el) el.value = v;
-}
-
-function extCalcDouyin(p) {
-  // 抖音：收入三块（售卖利润 + 过期收入 + 核销订单佣金）、成本三块（投流/平台/佣金，CP 已净扣在售卖利润里）
-  const sellPrice = p.sellPrice;
-  const redeemRate = p.redeem / 100;
-  const expireRate = 1 - redeemRate;
-  const rSellProfit  = (sellPrice - p.cpCost) * redeemRate;          // 售卖利润 = (售价 − CP) × 核销量
-  const rExpireRevenue = sellPrice * expireRate;                      // 过期收入 = 售价 × (1 − 核销量)
-  const rOrderCommission = p.discount * (p.orderMargin / 100) * redeemRate; // 核销订单佣金 = 优惠金额 × 佣金率 × 核销量
-  const totalRev = rSellProfit + rExpireRevenue + rOrderCommission;
-  const cAd = sellPrice * p.ad / 100;
-  const cPlat = sellPrice * p.platform / 100;
-  const cComm = sellPrice * p.commission / 100;
-  const totalCost = cAd + cPlat + cComm;
-  const profit = totalRev - totalCost;
+/* 抖音自运营：单券损益计算
+   收入 = 售价×(1-平台-投流-达人) + 订单佣金
+   成本 = 高德成本
+   利润 = 收入 - 成本
+   反推售价: P = (高德成本 - 订单佣金 + P×利润率) / (1-平台-投流-达人)
+   → P = (高德成本 - 订单佣金) / (1-平台-投流-达人-利润率)
+*/
+function extCalcDouyin(discount, gaodeCost, params, targetMargin) {
+  const redeemRate = params.redeem / 100;
+  const orderComm = discount * (params.orderMargin / 100) * redeemRate;
+  const platRate = params.platform / 100;
+  const adRate = params.ad / 100;
+  const commRate = params.commission / 100;
+  const denom = 1 - platRate - adRate - commRate - targetMargin;
+  let sellPrice = 0;
+  if (denom > 0) {
+    sellPrice = (gaodeCost - orderComm) / denom;
+  }
+  const netRevenue = sellPrice * (1 - platRate - adRate - commRate);
+  const orderCommission = orderComm;
+  const totalRevenue = netRevenue + orderCommission;
+  const profit = totalRevenue - gaodeCost;
   const margin = sellPrice > 0 ? profit / sellPrice : 0;
   return {
-    channel: 'douyin',
-    sellPrice, totalRev, totalCost, profit, margin,
-    rSellProfit, rExpireRevenue, rOrderCommission,
-    cAd, cPlat, cComm,
-    redeemRate, fixedPerUnit: 0
+    channel: 'douyin', sellPrice, totalRevenue, orderCommission,
+    netRevenue, profit, margin, gaodeCost, discount,
+    platFee: sellPrice * platRate, adCost: sellPrice * adRate, commCost: sellPrice * commRate,
+    redeemRate
   };
 }
 
-function extCalcSupplier(p) {
-  // 供应商：平台收入 = 提货价 − CP 分摊 − 系统分摊 − 返利
-  // 计算基数 = 优惠金额（p.discount），不是面值
-  const base = p.discount;
-  const buyPrice = base * p.buyRate / 100;
-  const sysCost = base * p.sysRate / 100;
-  const rebate = base * p.rebateRate / 100;
-  const cpShare = p.cpCost * p.platformShare / 100;
-  const platProfit = buyPrice - cpShare - sysCost - rebate;
-  const supplierProfit = p.supplierProfit;
-  const margin = buyPrice > 0 ? platProfit / buyPrice : 0;
+/* 授权代理商：单券损益计算
+   平台收入 = 提货价 - 高德成本
+   代理商: 售价=提货价, 收入=提货价×(1-平台-投流-达人) + 订单佣金, 成本=高德成本
+   反推提货价: buyPrice = (高德成本 - 订单佣金) / (1-平台-投流-达人-利润率)
+*/
+function extCalcAgent(discount, gaodeCost, params, targetMargin) {
+  const redeemRate = params.redeem / 100;
+  const orderComm = discount * (params.orderMargin / 100) * redeemRate;
+  const buyRate = params.buyRate / 100;
+  const buyPrice = discount * buyRate;
+  const platRate = params.agPlatform / 100;
+  const adRate = params.agAd / 100;
+  const commRate = params.agCommission / 100;
+
+  // 平台侧利润
+  const platProfit = buyPrice - gaodeCost;
+  const platMargin = buyPrice > 0 ? platProfit / buyPrice : 0;
+
+  // 代理商侧（反推售价）
+  const denom = 1 - platRate - adRate - commRate - targetMargin;
+  let agentSellPrice = 0;
+  if (denom > 0) {
+    agentSellPrice = (gaodeCost - orderComm) / denom;
+  }
+  const agentNetRev = agentSellPrice * (1 - platRate - adRate - commRate);
+  const agentTotalRev = agentNetRev + orderComm;
+  const agentProfit = agentTotalRev - gaodeCost;
+  const agentMargin = agentSellPrice > 0 ? agentProfit / agentSellPrice : 0;
+
   return {
-    channel: 'supplier',
-    sellPrice: buyPrice, // 平台"售价"视角=提货价
-    totalRev: buyPrice,
-    totalCost: cpShare + sysCost + rebate,
-    profit: platProfit,
-    margin,
-    buyPrice, supplierProfit,
-    sysCost, rebate, cpShare
+    channel: 'agent', buyPrice, platProfit, platMargin,
+    agentSellPrice, agentProfit, agentMargin,
+    gaodeCost, discount, orderCommission: orderComm, redeemRate
   };
 }
 
@@ -1376,7 +1387,7 @@ function extRenderTiers() {
   wrap.innerHTML = EXT_FUEL_TIERS.map(t =>
     `<div class="tier-chip ${t.name === extCurrentTier ? 'active' : ''}" data-tier="${t.name}">
       <div class="tc-name">${t.name}</div>
-      <div class="tc-sub">售 ¥${t.origPrice} · CP ¥${t.cpCost}</div>
+      <div class="tc-sub">优惠 ¥${t.discount} · 高德 ¥${t.gaodeCost}</div>
     </div>`
   ).join('');
   wrap.querySelectorAll('.tier-chip').forEach(el => {
@@ -1385,8 +1396,8 @@ function extRenderTiers() {
       if (!t) return;
       extCurrentTier = t.name;
       extSetVal('ext.discount', t.discount);
-      extSetVal('ext.cpCost', t.cpCost);
-      extSetVal('ext.dy.price', t.origPrice);
+      extSetVal('ext.cpCost', t.gaodeCost);
+      extSetVal('ext.dy.price', t.discount); // 参考价 = 优惠金额
       extRenderTiers();
       extRender();
     });
@@ -1400,11 +1411,11 @@ function extGetChannel() {
 function extToggleChannel() {
   const ch = extGetChannel();
   const dyPanel = document.getElementById('ext-douyin-panel');
-  const spPanel = document.getElementById('ext-supplier-panel');
+  const agPanel = document.getElementById('ext-agent-panel');
   dyPanel.style.display = (ch === 'douyin' || ch === 'both') ? '' : 'none';
-  spPanel.style.display = (ch === 'supplier' || ch === 'both') ? '' : 'none';
+  agPanel.style.display = (ch === 'agent' || ch === 'both') ? '' : 'none';
   dyPanel.classList.toggle('ext-full', ch === 'douyin');
-  spPanel.classList.toggle('ext-full', ch === 'supplier');
+  agPanel.classList.toggle('ext-full', ch === 'agent');
   extRender();
 }
 
@@ -1416,17 +1427,16 @@ function extBuildParams() {
     orderMargin: extGetVal('ext.orderMargin'),
     volume: extGetVal('ext.volume'),
     fixed: extGetVal('ext.fixed') * 10000,
-    // 抖音
+    // 抖音自运营
     commission: extGetVal('ext.dy.commission'),
     ad: extGetVal('ext.dy.ad'),
     platform: extGetVal('ext.dy.platform'),
-    sellPrice: extGetVal('ext.dy.price'),
-    // 供应商
-    buyRate: extGetVal('ext.sp.buyRate'),
-    platformShare: extGetVal('ext.sp.platformShare'),
-    sysRate: extGetVal('ext.sp.sysRate'),
-    rebateRate: extGetVal('ext.sp.rebateRate'),
-    supplierProfit: extGetVal('ext.sp.supplierProfit')
+    refPrice: extGetVal('ext.dy.price'),
+    // 授权代理商
+    buyRate: extGetVal('ext.ag.buyRate'),
+    agAd: extGetVal('ext.ag.ad'),
+    agCommission: extGetVal('ext.ag.commission'),
+    agPlatform: extGetVal('ext.ag.platform'),
   };
 }
 
@@ -1438,126 +1448,162 @@ function extUpdateHints(p) {
   const tr = document.getElementById('ext.dy.totalRate');
   if (tr) tr.textContent = `${totalRate}%`;
   const buyPrice = p.discount * p.buyRate / 100;
-  const bp = document.getElementById('ext.sp.buyPrice');
+  const bp = document.getElementById('ext.ag.buyPrice');
   if (bp) bp.textContent = `${buyPrice.toFixed(1)} 元`;
-  // 联动供应商单张毛利（自动计算 优惠金额 - 提货价）
-  const spProfit = p.discount - buyPrice;
-  if (Math.abs(extGetVal('ext.sp.supplierProfit') - spProfit) > 0.01) {
-    extSetVal('ext.sp.supplierProfit', spProfit.toFixed(1));
-  }
 }
 
-function extRenderKpi(kpiEl, channel, res, params) {
-  const monthlyProfit = res.profit * params.volume - params.fixed;
-  const monthlyGmv = res.sellPrice * params.volume;
-  // 月度 CP 分摊（现金流视角）：抖音 = cpCost × 核销量 × volume；供应商 = cpShare × volume
-  const monthlyCp = channel === 'douyin'
-    ? params.cpCost * (params.redeem / 100) * params.volume
-    : (res.cpShare || 0) * params.volume;
-  kpiEl.innerHTML = `
-    <div class="ext-channel-head">
-      <span class="tag ${channel === 'supplier' ? 'sup' : ''}">${channel === 'douyin' ? '📱 抖音' : '🏢 供应商'}</span>
-      <span style="color:var(--muted);font-size:12px">当前档位 ${extCurrentTier}</span>
-    </div>
-    <div class="ext-kpi-grid">
-      <div class="ext-kpi ${res.profit > 0 ? 'pos' : 'neg'}">
-        <div class="k-label">单券利润</div>
-        <div class="k-value">¥${res.profit.toFixed(2)}</div>
-        <div class="k-sub">利润率 ${(res.margin*100).toFixed(1)}%</div>
+function extRenderKpi(kpiEl, channel, params) {
+  const tier = EXT_FUEL_TIERS.find(t => t.name === extCurrentTier);
+  if (!tier) return;
+  const discount = tier.discount;
+  const gaodeCost = tier.gaodeCost;
+
+  if (channel === 'douyin') {
+    // 当前参考价下的损益
+    const refResult = extCalcDouyin(discount, gaodeCost, params, 0);
+    const refPrice = params.refPrice;
+    const atRef = extCalcDouyin(discount, gaodeCost, {...params, refPrice}, 0);
+    // 用参考价反算利润率
+    const redeemRate = params.redeem / 100;
+    const orderComm = discount * (params.orderMargin / 100) * redeemRate;
+    const platRate = params.platform / 100;
+    const adRate = params.ad / 100;
+    const commRate = params.commission / 100;
+    const netAtRef = refPrice * (1 - platRate - adRate - commRate) + orderComm - gaodeCost;
+    const marginAtRef = refPrice > 0 ? netAtRef / refPrice : 0;
+    const monthlyAtRef = netAtRef * params.volume - params.fixed;
+
+    kpiEl.innerHTML = `
+      <div class="ext-channel-head">
+        <span class="tag">📱 抖音自运营</span>
+        <span style="color:var(--muted);font-size:12px">当前档位 ${extCurrentTier} · 优惠 ¥${discount} · 高德 ¥${gaodeCost}</span>
       </div>
-      <div class="ext-kpi pos">
-        <div class="k-label">单券收入合计</div>
-        <div class="k-value">¥${res.totalRev.toFixed(2)}</div>
-        <div class="k-sub">${channel === 'douyin' ? `售卖利润 ${res.rSellProfit.toFixed(2)} + 过期收入 ${res.rExpireRevenue.toFixed(2)} + 订单佣金 ${res.rOrderCommission.toFixed(2)}` : `提货价 ${res.buyPrice.toFixed(1)}`}</div>
+      <div class="ext-kpi-grid">
+        <div class="ext-kpi ${netAtRef >= 0 ? 'pos' : 'neg'}">
+          <div class="k-label">参考价 ¥${refPrice.toFixed(1)} 时单券利润</div>
+          <div class="k-value">¥${netAtRef.toFixed(2)}</div>
+          <div class="k-sub">利润率 ${(marginAtRef*100).toFixed(1)}%</div>
+        </div>
+        <div class="ext-kpi pos">
+          <div class="k-label">保本售价 (0%)</div>
+          <div class="k-value">¥${extCalcDouyin(discount, gaodeCost, params, 0).sellPrice.toFixed(2)}</div>
+          <div class="k-sub">利润率 0% 时的最低售价</div>
+        </div>
+        <div class="ext-kpi pos">
+          <div class="k-label">5%利润率售价</div>
+          <div class="k-value">¥${extCalcDouyin(discount, gaodeCost, params, 0.05).sellPrice.toFixed(2)}</div>
+          <div class="k-sub">目标利润率 5%</div>
+        </div>
+        <div class="ext-kpi ${monthlyAtRef >= 0 ? 'pos' : 'neg'}">
+          <div class="k-label">月度净利润（参考价）</div>
+          <div class="k-value">¥${(monthlyAtRef/10000).toFixed(2)} 万</div>
+          <div class="k-sub">销量 ${params.volume} 张 · 固定 ${(params.fixed/10000).toFixed(1)} 万</div>
+        </div>
+        <div class="ext-kpi pos">
+          <div class="k-label">订单佣金（单券）</div>
+          <div class="k-value">¥${(discount * params.orderMargin/100 * redeemRate).toFixed(2)}</div>
+          <div class="k-sub">优惠金额×${params.orderMargin}%×核销率</div>
+        </div>
+        <div class="ext-kpi ${params.fixed > 0 ? 'warn' : 'pos'}">
+          <div class="k-label">费用率合计</div>
+          <div class="k-value">${(platRate+adRate+commRate)*100 | 0 ? ((platRate+adRate+commRate)*100).toFixed(1) : '0'}%</div>
+          <div class="k-sub">平台 ${(platRate*100).toFixed(1)}% + 投流 ${(adRate*100).toFixed(1)}% + 达人 ${(commRate*100).toFixed(1)}%</div>
+        </div>
+      </div>`;
+  } else {
+    // 代理商
+    const buyPrice = discount * params.buyRate / 100;
+    const platProfit = buyPrice - gaodeCost;
+    const platMargin = buyPrice > 0 ? platProfit / buyPrice : 0;
+    const agentResult = extCalcAgent(discount, gaodeCost, params, 0);
+    const monthlyPlat = platProfit * params.volume - params.fixed;
+
+    kpiEl.innerHTML = `
+      <div class="ext-channel-head">
+        <span class="tag sup">🏢 授权代理商</span>
+        <span style="color:var(--muted);font-size:12px">当前档位 ${extCurrentTier} · 优惠 ¥${discount} · 高德 ¥${gaodeCost}</span>
       </div>
-      <div class="ext-kpi ${res.totalCost > 0 ? 'warn' : 'pos'}">
-        <div class="k-label">单券成本合计</div>
-        <div class="k-value">¥${res.totalCost.toFixed(2)}</div>
-        <div class="k-sub">${channel === 'douyin' ? `投流 ${res.cAd.toFixed(2)} + 平台 ${res.cPlat.toFixed(2)} + 佣金 ${res.cComm.toFixed(2)}` : `CP ${res.cpShare.toFixed(1)} + 系统 ${res.sysCost.toFixed(1)} + 返利 ${res.rebate.toFixed(1)}`}</div>
-      </div>
-      <div class="ext-kpi ${monthlyProfit > 0 ? 'pos' : 'neg'}">
-        <div class="k-label">月度净利润</div>
-        <div class="k-value">¥${(monthlyProfit/10000).toFixed(2)} 万</div>
-        <div class="k-sub">销量 ${params.volume} 张 · 固定 ${(params.fixed/10000).toFixed(1)} 万</div>
-      </div>
-      <div class="ext-kpi pos">
-        <div class="k-label">月度 GMV / 提货额</div>
-        <div class="k-value">¥${(monthlyGmv/10000).toFixed(2)} 万</div>
-        <div class="k-sub">单券 ¥${res.sellPrice.toFixed(1)}</div>
-      </div>
-      <div class="ext-kpi pos">
-        <div class="k-label">月度 CP 分摊</div>
-        <div class="k-value">¥${(monthlyCp/10000).toFixed(2)} 万</div>
-        <div class="k-sub">核销率 ${(params.redeem).toFixed(0)}%</div>
-      </div>
-    </div>`;
+      <div class="ext-kpi-grid">
+        <div class="ext-kpi ${platProfit >= 0 ? 'pos' : 'neg'}">
+          <div class="k-label">平台单券利润</div>
+          <div class="k-value">¥${platProfit.toFixed(2)}</div>
+          <div class="k-sub">提货价 ${buyPrice.toFixed(1)} − 高德 ${gaodeCost}，利润率 ${(platMargin*100).toFixed(1)}%</div>
+        </div>
+        <div class="ext-kpi pos">
+          <div class="k-label">代理商保本售价</div>
+          <div class="k-value">¥${agentResult.agentSellPrice.toFixed(2)}</div>
+          <div class="k-sub">代理商利润率 0%</div>
+        </div>
+        <div class="ext-kpi pos">
+          <div class="k-label">代理商5%利润率售价</div>
+          <div class="k-value">¥${extCalcAgent(discount, gaodeCost, params, 0.05).agentSellPrice.toFixed(2)}</div>
+          <div class="k-sub">代理商目标利润率 5%</div>
+        </div>
+        <div class="ext-kpi ${monthlyPlat >= 0 ? 'pos' : 'neg'}">
+          <div class="k-label">平台月度利润</div>
+          <div class="k-value">¥${(monthlyPlat/10000).toFixed(2)} 万</div>
+          <div class="k-sub">销量 ${params.volume} 张 · 固定 ${(params.fixed/10000).toFixed(1)} 万</div>
+        </div>
+      </div>`;
+  }
 }
 
 function extRenderMatrix(params) {
   const wrap = document.getElementById('ext-matrix');
   if (!wrap) return;
   const ch = extGetChannel();
-  const channels = ch === 'both' ? ['douyin', 'supplier'] : [ch];
+  const channels = ch === 'both' ? ['douyin', 'agent'] : [ch];
 
-  const rows = EXT_FUEL_TIERS.map(t => {
-    const isCurrent = t.name === extCurrentTier;
-    // 当前档位行跟随输入框实际值（券售价/优惠金额/CP 成本可手动改），其余档位用原价
-    const p = {
-      ...params,
-      discount: isCurrent ? params.discount : t.discount,
-      cpCost: isCurrent ? params.cpCost : t.cpCost
-    };
-    const dy = extCalcDouyin({
-      ...p,
-      sellPrice: isCurrent ? params.sellPrice : t.origPrice,
-      commission: params.commission,
-      ad: params.ad,
-      platform: params.platform
-    });
-    const sp = extCalcSupplier(p);
-    const dyMonthly = dy.profit * params.volume - params.fixed;
-    const spMonthly = sp.profit * params.volume - params.fixed;
-    return { t, dy, sp, dyMonthly, spMonthly, effDiscount: p.discount, effCpCost: p.cpCost };
-  });
-
-  const thsBase = ['档位', '优惠', 'CP 成本', '成本率'];
-  const thsDy = ['售价', '售卖利润', '过期收入', '订单佣金', '投流', '达人佣金', '平台费', '单券利润', '利润率', '月利润(万)'];
-  const thsSp = ['提货价', 'CP 分摊', '系统', '返利', '单券利润', '利润率', '供应商毛利', '月利润(万)'];
+  const tierLabels = EXT_PROFIT_TIERS.map(m => (m*100).toFixed(1) + '%');
+  const thsBase = ['档位', '优惠', '高德成本', '成本率'];
 
   let html = '';
   channels.forEach(c => {
     const isDy = c === 'douyin';
-    const ths = [...thsBase, ...(isDy ? thsDy : thsSp)];
-    const title = isDy ? '📱 抖音渠道' : '🏢 供应商渠道';
-    const trs = rows.map(r => {
-      const data = isDy ? r.dy : r.sp;
-      const monthly = isDy ? r.dyMonthly : r.spMonthly;
-      const isCurrent = r.t.name === extCurrentTier;
-      const cls = monthly >= 0 ? 'band-healthy' : 'band-loss';
-      const costRate = r.effDiscount > 0 ? (r.effCpCost / r.effDiscount * 100).toFixed(0) + '%' : '-';
-      let cells;
+    const thsExtra = isDy
+      ? [...tierLabels.map(l => `售价(${l})`), '达人分佣', '订单佣金', '月利润(5%,万)']
+      : [...tierLabels.map(l => `代理商售价(${l})`), '提货价', '平台利润', '月利润(5%,万)'];
+    const ths = [...thsBase, ...thsExtra];
+    const title = isDy ? '📱 抖音自运营' : '🏢 授权代理商';
+
+    const trs = EXT_FUEL_TIERS.map(t => {
+      const isCurrent = t.name === extCurrentTier;
+      const d = isCurrent ? params.discount : t.discount;
+      const gc = isCurrent ? params.cpCost : t.gaodeCost;
+      const costRate = d > 0 ? (gc / d * 100).toFixed(0) + '%' : '-';
+      let cells = [t.name, d, gc.toFixed(2), costRate];
+
       if (isDy) {
-        cells = [
-          r.t.name, r.effDiscount, r.effCpCost, costRate,
-          data.sellPrice.toFixed(1),
-          data.rSellProfit.toFixed(2), data.rExpireRevenue.toFixed(2), data.rOrderCommission.toFixed(2),
-          data.cAd.toFixed(2), data.cComm.toFixed(2), data.cPlat.toFixed(2),
-          `<span class="${data.profit >= 0 ? 'cell-pos' : 'cell-neg'}">${data.profit.toFixed(2)}</span>`,
-          `<span class="${data.margin >= 0.1 ? 'cell-pos' : data.margin >= 0 ? 'cell-zero' : 'cell-neg'}">${(data.margin*100).toFixed(1)}%</span>`,
-          `<span class="${monthly >= 0 ? 'cell-pos' : 'cell-neg'}">${(monthly/10000).toFixed(2)}</span>`
-        ];
+        const tierPrices = EXT_PROFIT_TIERS.map(m => {
+          const r = extCalcDouyin(d, gc, params, m);
+          return r.sellPrice.toFixed(2);
+        });
+        const r5 = extCalcDouyin(d, gc, params, 0.05);
+        const monthly5 = r5.profit * params.volume - params.fixed;
+        cells.push(
+          ...tierPrices,
+          params.commission.toFixed(1) + '%',
+          r5.orderCommission.toFixed(2),
+          `<span class="${monthly5 >= 0 ? 'cell-pos' : 'cell-neg'}">${(monthly5/10000).toFixed(2)}</span>`
+        );
       } else {
-        cells = [
-          r.t.name, r.effDiscount, r.effCpCost, costRate,
-          data.buyPrice.toFixed(1),
-          data.cpShare.toFixed(2), data.sysCost.toFixed(2), data.rebate.toFixed(2),
-          `<span class="${data.profit >= 0 ? 'cell-pos' : 'cell-neg'}">${data.profit.toFixed(2)}</span>`,
-          `<span class="${data.margin >= 0.05 ? 'cell-pos' : data.margin >= 0 ? 'cell-zero' : 'cell-neg'}">${(data.margin*100).toFixed(1)}%</span>`,
-          data.supplierProfit.toFixed(1),
-          `<span class="${monthly >= 0 ? 'cell-pos' : 'cell-neg'}">${(monthly/10000).toFixed(2)}</span>`
-        ];
+        const tierPrices = EXT_PROFIT_TIERS.map(m => {
+          const r = extCalcAgent(d, gc, params, m);
+          return r.agentSellPrice.toFixed(2);
+        });
+        const buyPrice = d * params.buyRate / 100;
+        const platProfit = buyPrice - gc;
+        const r5 = extCalcAgent(d, gc, params, 0.05);
+        const monthly5 = r5.agentProfit * params.volume - params.fixed;
+        cells.push(
+          ...tierPrices,
+          buyPrice.toFixed(1),
+          `<span class="${platProfit >= 0 ? 'cell-pos' : 'cell-neg'}">${platProfit.toFixed(2)}</span>`,
+          `<span class="${monthly5 >= 0 ? 'cell-pos' : 'cell-neg'}">${(monthly5/10000).toFixed(2)}</span>`
+        );
       }
-      return `<tr class="${cls} ${isCurrent ? 'is-current' : ''}">${cells.map(c => `<td>${c}</td>`).join('')}</tr>`;
+      const cls = isCurrent ? 'is-current' : '';
+      return `<tr class="${cls}">${cells.map(c => `<td>${c}</td>`).join('')}</tr>`;
     }).join('');
     html += `<div style="margin-bottom:18px;font-weight:600;color:var(--text)">${title}</div>
       <table class="scenario-table"><thead><tr>${ths.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${trs}</tbody></table>`;
@@ -1575,19 +1621,16 @@ function extRender() {
   kpiEl.innerHTML = '';
 
   if (ch === 'douyin' || ch === 'both') {
-    const dyParams = { ...p, sellPrice: p.sellPrice };
-    const dy = extCalcDouyin(dyParams);
     const div = document.createElement('div');
     div.className = 'panel';
     kpiEl.appendChild(div);
-    extRenderKpi(div, 'douyin', dy, p);
+    extRenderKpi(div, 'douyin', p);
   }
-  if (ch === 'supplier' || ch === 'both') {
-    const sp = extCalcSupplier(p);
+  if (ch === 'agent' || ch === 'both') {
     const div = document.createElement('div');
     div.className = 'panel';
     kpiEl.appendChild(div);
-    extRenderKpi(div, 'supplier', sp, p);
+    extRenderKpi(div, 'agent', p);
   }
 
   extRenderMatrix(p);
@@ -1600,33 +1643,28 @@ function initExternal() {
   if (extInited) { extRender(); return; }
   extInited = true;
   extRenderTiers();
-  // 参数变化监听
   const ids = [
     'ext.discount','ext.cpCost','ext.redeem','ext.orderMargin','ext.volume','ext.fixed',
     'ext.dy.commission','ext.dy.ad','ext.dy.platform','ext.dy.price',
-    'ext.sp.buyRate','ext.sp.platformShare','ext.sp.sysRate','ext.sp.rebateRate','ext.sp.supplierProfit'
+    'ext.ag.buyRate','ext.ag.ad','ext.ag.commission','ext.ag.platform'
   ];
   ids.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('input', () => {
       if (id === 'ext.discount' || id === 'ext.cpCost') {
-        // 同步档位 chip 高亮
         const d = extGetVal('ext.discount');
-        const match = EXT_FUEL_TIERS.find(t => Math.abs(t.discount - d) < 0.01);
+        const match = EXT_FUEL_TIERS.find(t => Math.abs(t.discount - d) < 0.01 && Math.abs(t.gaodeCost - extGetVal('ext.cpCost')) < 0.01);
         if (match) extCurrentTier = match.name;
+        else {
+          const match2 = EXT_FUEL_TIERS.find(t => Math.abs(t.discount - d) < 0.01);
+          if (match2) extCurrentTier = match2.name;
+        }
         extRenderTiers();
-      }
-      if (id === 'ext.discount') {
-        // 联动抖音售价 = 档位原价（原售价）
-        const d = extGetVal('ext.discount');
-        const match = EXT_FUEL_TIERS.find(t => Math.abs(t.discount - d) < 0.01);
-        extSetVal('ext.dy.price', match ? match.origPrice : d);
       }
       extRender();
     });
   });
-  // 渠道切换
   document.querySelectorAll('input[name="ext.channel"]').forEach(r => {
     r.addEventListener('change', extToggleChannel);
   });
