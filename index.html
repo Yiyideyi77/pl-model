@@ -1697,7 +1697,7 @@ function extScenarioRow(targetMargin, channel, params) {
   const profit = totalRevenue - gaodeCostTotal - fixed;
   const profitMargin = totalRevenue > 0 ? profit / totalRevenue : 0;
   const perUnitContrib = netRev - gaodeCost + orderComm;
-  const bepVol = perUnitContrib > 0 ? fixed / perUnitContrib : Infinity;
+  const bepVol = perUnitContrib > 0.01 ? fixed / perUnitContrib : Infinity;
 
   return {
     target: targetMargin, sellPrice, totalRevenue, orderCommission,
