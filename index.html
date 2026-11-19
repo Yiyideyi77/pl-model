@@ -1247,6 +1247,27 @@
       </h3>
       <div class="scenario-table-wrap" id="ext-matrix"></div>
     </div>
+
+    <!-- 方案测算与可调控区间 -->
+    <div class="biz-scenario" id="ext-scenario" style="margin-top:16px">
+      <h3>
+        📐 方案测算与可调控区间
+        <span class="sub">基于当前档位反推多档利润率方案</span>
+        <span class="tier-indicator" id="ext-scenario-tier">
+          <span class="ti-dot"></span>
+          <span class="ti-text">当前档位</span>
+        </span>
+      </h3>
+      <div class="range-bar" id="ext-range"></div>
+      <div class="speed-cards" id="ext-speed"></div>
+      <div class="scenario-table-wrap" id="ext-scenario-matrix"></div>
+      <div class="range-legend">
+        <div class="lg-item"><span class="lg-dot loss"></span> 亏损区 (&lt;0%)</div>
+        <div class="lg-item"><span class="lg-dot even"></span> 保本边缘 (0~3%)</div>
+        <div class="lg-item"><span class="lg-dot healthy"></span> 健康区 (3~5%)</div>
+        <div class="lg-item"><span class="lg-dot excess"></span> 超额利润 (&gt;5%)</div>
+      </div>
+    </div>
   </div>
 
 
@@ -1641,6 +1662,122 @@ function extRenderMatrix(params) {
   wrap.innerHTML = html;
 }
 
+/* 端外售券：方案测算行计算 */
+function extScenarioRow(targetMargin, channel, params) {
+  const tier = EXT_FUEL_TIERS.find(t => t.name === extCurrentTier);
+  if (!tier) return null;
+  const discount = tier.discount;
+  const gaodeCost = tier.gaodeCost;
+  const redeemRate = params.redeem / 100;
+  const orderComm = discount * (params.orderMargin / 100) * redeemRate;
+  const volume = params.volume;
+  const fixed = params.fixed;
+
+  let sellPrice = 0, netRev = 0, totalFees = 0;
+
+  if (channel === 'douyin') {
+    const platRate = params.platform / 100;
+    const adRate = params.ad / 100;
+    const commRate = params.commission / 100;
+    const denom = 1 - platRate - adRate - commRate - targetMargin;
+    if (denom > 0) sellPrice = (gaodeCost - orderComm) / denom;
+    netRev = sellPrice * (1 - platRate - adRate - commRate);
+    totalFees = sellPrice * (platRate + adRate + commRate);
+  } else {
+    const adRate = params.agAd / 100;
+    const denom = 1 - adRate - targetMargin;
+    if (denom > 0) sellPrice = (gaodeCost - orderComm) / denom;
+    netRev = sellPrice * (1 - adRate);
+    totalFees = sellPrice * adRate;
+  }
+
+  const orderCommission = orderComm * volume;
+  const totalRevenue = netRev * volume + orderCommission;
+  const gaodeCostTotal = gaodeCost * volume;
+  const profit = totalRevenue - gaodeCostTotal - fixed;
+  const profitMargin = totalRevenue > 0 ? profit / totalRevenue : 0;
+  const perUnitContrib = netRev - gaodeCost + orderComm;
+  const bepVol = perUnitContrib > 0 ? fixed / perUnitContrib : Infinity;
+
+  return {
+    target: targetMargin, sellPrice, totalRevenue, orderCommission,
+    netRev, profit, profitMargin,
+    gaodeCostTotal, totalFees: totalFees * volume, fixed, bepVol
+  };
+}
+
+/* 渲染端外售券方案测算 */
+function renderExtScenarios() {
+  const ch = extGetChannel();
+  const channel = ch === 'agent' ? 'agent' : 'douyin';
+  const params = extBuildParams();
+  const tiers = [-0.05, -0.02, 0, 0.02, 0.03, 0.05, 0.06, 0.08, 0.10, 0.12, 0.15];
+  const rows = tiers.map(m => extScenarioRow(m, channel, params)).filter(Boolean);
+
+  const r0 = extScenarioRow(0, channel, params);
+  const r3 = extScenarioRow(0.03, channel, params);
+  const r5 = extScenarioRow(0.05, channel, params);
+  const tier = EXT_FUEL_TIERS.find(t => t.name === extCurrentTier);
+
+  // 档位指示器
+  const tiText = document.querySelector('#ext-scenario-tier .ti-text');
+  if (tiText && tier) tiText.textContent = `${tier.name} · 优惠¥${tier.discount} · 高德¥${tier.gaodeCost}`;
+
+  // 可调控区间条
+  const rangeEl = document.getElementById('ext-range');
+  if (rangeEl && r0 && r5) {
+    rangeEl.innerHTML = `
+      <div class="range-item"><span class="r-label">保本售价 (0%)</span><span class="r-value">${fmtY(r0.sellPrice)}</span><span class="r-unit">元</span></div>
+      <div class="range-item"><span class="r-label">稳健售价 (3%)</span><span class="r-value">${fmtY(r3.sellPrice)}</span><span class="r-unit">元</span></div>
+      <div class="range-item"><span class="r-label">目标售价 (5%)</span><span class="r-value">${fmtY(r5.sellPrice)}</span><span class="r-unit">元</span></div>
+      <div class="range-item"><span class="r-label">可调控区间</span><span class="r-value" style="color:var(--green)">${fmtY(r0.sellPrice)} ~ ${fmtY(r5.sellPrice)}</span></div>
+    `;
+  }
+
+  // 速览卡片
+  const speedEl = document.getElementById('ext-speed');
+  if (speedEl && r0 && r3 && r5) {
+    const card = (cls, tag, label, r, unit) => `
+      <div class="speed-card ${cls}">
+        <div class="s-title"><span>${label}</span><span class="s-tag">${tag}</span></div>
+        <div class="s-main"><span class="s-price">${fmtY(r.sellPrice)}</span><span class="s-unit">${unit}</span></div>
+        <div class="s-metrics">
+          <div class="m-row"><span class="m-k">总收入</span><span class="m-v">${fmtM(r.totalRevenue)}</span></div>
+          <div class="m-row"><span class="m-k">净利额</span><span class="m-v ${cellCls(r.profit)}">${fmtM(r.profit)}</span></div>
+          <div class="m-row"><span class="m-k">订单佣金</span><span class="m-v">${fmtM(r.orderCommission)}</span></div>
+          <div class="m-row"><span class="m-k">保本销量</span><span class="m-v">${fmtM(r.bepVol)}</span></div>
+        </div>
+      </div>`;
+    speedEl.innerHTML =
+      card('breakeven','保本','保本方案 (0%)', r0, '元/张') +
+      card('stable','稳健','稳健方案 (3%)', r3, '元/张') +
+      card('target','目标','目标方案 (5%)', r5, '元/张');
+  }
+
+  // 矩阵表
+  const matrixEl = document.getElementById('ext-scenario-matrix');
+  if (matrixEl) {
+    const colHeaders = ['目标利润率','售价','单券净收入','订单佣金','总收入','高德成本','费用合计','固定','净利润','净利率','保本销量'];
+    const ths = colHeaders.map(h => `<th>${h}</th>`).join('');
+    const trs = rows.map(r => {
+      return `<tr class="${bandCls(r.target)}">
+        <td>${(r.target*100).toFixed(0)}%</td>
+        <td>${fmtY(r.sellPrice)}</td>
+        <td>${fmtY(r.netRev)}</td>
+        <td>${fmtM(r.orderCommission)}</td>
+        <td>${fmtM(r.totalRevenue)}</td>
+        <td>${fmtM(r.gaodeCostTotal)}</td>
+        <td>${fmtM(r.totalFees)}</td>
+        <td>${fmtM(r.fixed)}</td>
+        <td class="${cellCls(r.profit)}">${fmtM(r.profit)}</td>
+        <td class="${cellCls(r.profitMargin)}">${fmtP(r.profitMargin)}</td>
+        <td>${fmtM(r.bepVol)}</td>
+      </tr>`;
+    }).join('');
+    matrixEl.innerHTML = `<table class="scenario-table"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
+  }
+}
+
 function extRender() {
   if (!extInited) return;
   const p = extBuildParams();
@@ -1664,6 +1801,7 @@ function extRender() {
   }
 
   extRenderMatrix(p);
+  renderExtScenarios();
 
   const tiText = document.querySelector('#ext-current-tier .ti-text');
   if (tiText) tiText.textContent = extCurrentTier;
