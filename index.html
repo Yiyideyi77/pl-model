@@ -1165,7 +1165,7 @@
               </div>
               <div class="field with-suffix" data-suffix="%">
                 <label>投流占比</label>
-                <input type="number" class="num-input pct" id="ext.dy.ad" value="5" min="0" max="100" step="0.1" autocomplete="off">
+                <input type="number" class="num-input pct" id="ext.dy.ad" value="1" min="0" max="100" step="0.1" autocomplete="off">
               </div>
               <div class="field with-suffix" data-suffix="%">
                 <label>平台抽佣</label>
@@ -1216,18 +1216,15 @@
           </div>
           <div>
             <div class="section-divider">代理商费用</div>
-            <div class="field-group-3">
+            <div class="field-group">
               <div class="field with-suffix" data-suffix="%">
                 <label>代理商投流</label>
-                <input type="number" class="num-input pct" id="ext.ag.ad" value="5" min="0" max="100" step="0.5" autocomplete="off">
+                <input type="number" class="num-input pct" id="ext.ag.ad" value="1" min="0" max="100" step="0.5" autocomplete="off">
+                <div class="hint">代理商投流费用占比</div>
               </div>
-              <div class="field with-suffix" data-suffix="%">
-                <label>代理商达人佣金</label>
-                <input type="number" class="num-input pct" id="ext.ag.commission" value="0" min="0" max="100" step="0.1" autocomplete="off">
-              </div>
-              <div class="field with-suffix" data-suffix="%">
-                <label>平台抽佣</label>
-                <input type="number" class="num-input pct" id="ext.ag.platform" value="1" min="0" max="100" step="0.1" autocomplete="off">
+              <div class="field">
+                <label>&nbsp;</label>
+                <div style="color:var(--muted);font-size:12px;padding:6px 0">代理商达人佣金请在抖音自运营渠道中统一测算</div>
               </div>
             </div>
           </div>
@@ -1347,29 +1344,26 @@ function extCalcDouyin(discount, gaodeCost, params, targetMargin) {
 
 /* 授权代理商：单券损益计算
    平台收入 = 提货价 - 高德成本
-   代理商: 售价=提货价, 收入=提货价×(1-平台-投流-达人) + 订单佣金, 成本=高德成本
-   反推提货价: buyPrice = (高德成本 - 订单佣金) / (1-平台-投流-达人-利润率)
+   代理商: 反推售价 = (高德成本 - 订单佣金) / (1 - 投流 - 利润率)
 */
 function extCalcAgent(discount, gaodeCost, params, targetMargin) {
   const redeemRate = params.redeem / 100;
   const orderComm = discount * (params.orderMargin / 100) * redeemRate;
   const buyRate = params.buyRate / 100;
   const buyPrice = discount * buyRate;
-  const platRate = params.agPlatform / 100;
   const adRate = params.agAd / 100;
-  const commRate = params.agCommission / 100;
 
   // 平台侧利润
   const platProfit = buyPrice - gaodeCost;
   const platMargin = buyPrice > 0 ? platProfit / buyPrice : 0;
 
-  // 代理商侧（反推售价）
-  const denom = 1 - platRate - adRate - commRate - targetMargin;
+  // 代理商侧（反推售价，仅扣除投流）
+  const denom = 1 - adRate - targetMargin;
   let agentSellPrice = 0;
   if (denom > 0) {
     agentSellPrice = (gaodeCost - orderComm) / denom;
   }
-  const agentNetRev = agentSellPrice * (1 - platRate - adRate - commRate);
+  const agentNetRev = agentSellPrice * (1 - adRate);
   const agentTotalRev = agentNetRev + orderComm;
   const agentProfit = agentTotalRev - gaodeCost;
   const agentMargin = agentSellPrice > 0 ? agentProfit / agentSellPrice : 0;
@@ -1435,8 +1429,6 @@ function extBuildParams() {
     // 授权代理商
     buyRate: extGetVal('ext.ag.buyRate'),
     agAd: extGetVal('ext.ag.ad'),
-    agCommission: extGetVal('ext.ag.commission'),
-    agPlatform: extGetVal('ext.ag.platform'),
   };
 }
 
@@ -1646,7 +1638,7 @@ function initExternal() {
   const ids = [
     'ext.discount','ext.cpCost','ext.redeem','ext.orderMargin','ext.volume','ext.fixed',
     'ext.dy.commission','ext.dy.ad','ext.dy.platform','ext.dy.price',
-    'ext.ag.buyRate','ext.ag.ad','ext.ag.commission','ext.ag.platform'
+    'ext.ag.buyRate','ext.ag.ad'
   ];
   ids.forEach(id => {
     const el = document.getElementById(id);
