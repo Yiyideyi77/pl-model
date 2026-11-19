@@ -1546,39 +1546,77 @@ function extRenderMatrix(params) {
   const ch = extGetChannel();
   const channels = ch === 'both' ? ['douyin', 'agent'] : [ch];
 
-  const tierLabels = EXT_PROFIT_TIERS.map(m => (m*100).toFixed(1) + '%');
+  const EXT_COMM_TIERS = [0.01, 0.03, 0.05, 0.07]; // 达人佣金测试档位
   const thsBase = ['档位', '优惠', '高德成本', '成本率'];
 
   let html = '';
   channels.forEach(c => {
     const isDy = c === 'douyin';
-    const thsExtra = isDy
-      ? [...tierLabels.map(l => `售价(${l})`), '达人分佣', '订单佣金', '月利润(5%,万)']
-      : [...tierLabels.map(l => `代理商售价(${l})`), '提货价', '平台利润', '月利润(5%,万)'];
-    const ths = [...thsBase, ...thsExtra];
     const title = isDy ? '📱 抖音自运营' : '🏢 授权代理商';
+    html += `<div style="margin-bottom:12px;font-weight:600;color:var(--text)">${title}</div>`;
 
-    const trs = EXT_FUEL_TIERS.map(t => {
-      const isCurrent = t.name === extCurrentTier;
-      const d = isCurrent ? params.discount : t.discount;
-      const gc = isCurrent ? params.cpCost : t.gaodeCost;
-      const costRate = d > 0 ? (gc / d * 100).toFixed(0) + '%' : '-';
-      let cells = [t.name, d, gc.toFixed(2), costRate];
-
-      if (isDy) {
+    if (isDy) {
+      // 表1: 达人佣金=0%, 利润率 0/0.5/1/3/5% 测售价
+      const tierLabels1 = EXT_PROFIT_TIERS.map(m => (m*100).toFixed(1) + '%');
+      const ths1 = [...thsBase, ...tierLabels1.map(l => `售价(${l})`), '订单佣金', '月利润(5%,万)'];
+      const trs1 = EXT_FUEL_TIERS.map(t => {
+        const isCurrent = t.name === extCurrentTier;
+        const d = isCurrent ? params.discount : t.discount;
+        const gc = isCurrent ? params.cpCost : t.gaodeCost;
+        const costRate = d > 0 ? (gc / d * 100).toFixed(0) + '%' : '-';
+        const p0 = {...params, commission: 0};
         const tierPrices = EXT_PROFIT_TIERS.map(m => {
-          const r = extCalcDouyin(d, gc, params, m);
+          const r = extCalcDouyin(d, gc, p0, m);
           return r.sellPrice.toFixed(2);
         });
-        const r5 = extCalcDouyin(d, gc, params, 0.05);
+        const r5 = extCalcDouyin(d, gc, p0, 0.05);
         const monthly5 = r5.profit * params.volume - params.fixed;
-        cells.push(
+        const cells = [t.name, d, gc.toFixed(2), costRate,
           ...tierPrices,
-          params.commission.toFixed(1) + '%',
           r5.orderCommission.toFixed(2),
           `<span class="${monthly5 >= 0 ? 'cell-pos' : 'cell-neg'}">${(monthly5/10000).toFixed(2)}</span>`
-        );
-      } else {
+        ];
+        const cls = isCurrent ? 'is-current' : '';
+        return `<tr class="${cls}">${cells.map(c => `<td>${c}</td>`).join('')}</tr>`;
+      }).join('');
+      html += `<div style="margin-bottom:4px;color:var(--muted);font-size:12px">达人佣金 0% · 利润率阶梯测售价</div>
+        <table class="scenario-table"><thead><tr>${ths1.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${trs1}</tbody></table>`;
+
+      // 表2: 利润率=5%, 达人佣金 1/3/5/7% 测售价
+      const commLabels = EXT_COMM_TIERS.map(c => (c*100).toFixed(0) + '%');
+      const ths2 = [...thsBase, ...commLabels.map(l => `售价(达人${l})`), '订单佣金', '月利润(达人7%,万)'];
+      const trs2 = EXT_FUEL_TIERS.map(t => {
+        const isCurrent = t.name === extCurrentTier;
+        const d = isCurrent ? params.discount : t.discount;
+        const gc = isCurrent ? params.cpCost : t.gaodeCost;
+        const costRate = d > 0 ? (gc / d * 100).toFixed(0) + '%' : '-';
+        const tierPrices = EXT_COMM_TIERS.map(cm => {
+          const pc = {...params, commission: cm * 100};
+          const r = extCalcDouyin(d, gc, pc, 0.05);
+          return r.sellPrice.toFixed(2);
+        });
+        const pc7 = {...params, commission: 7};
+        const r7 = extCalcDouyin(d, gc, pc7, 0.05);
+        const monthly7 = r7.profit * params.volume - params.fixed;
+        const cells = [t.name, d, gc.toFixed(2), costRate,
+          ...tierPrices,
+          r7.orderCommission.toFixed(2),
+          `<span class="${monthly7 >= 0 ? 'cell-pos' : 'cell-neg'}">${(monthly7/10000).toFixed(2)}</span>`
+        ];
+        const cls = isCurrent ? 'is-current' : '';
+        return `<tr class="${cls}">${cells.map(c => `<td>${c}</td>`).join('')}</tr>`;
+      }).join('');
+      html += `<div style="margin:18px 0 4px;color:var(--muted);font-size:12px">利润率 5% · 达人佣金阶梯测售价</div>
+        <table class="scenario-table"><thead><tr>${ths2.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${trs2}</tbody></table>`;
+    } else {
+      // 代理商: 保持原有单表，利润率阶梯
+      const tierLabels = EXT_PROFIT_TIERS.map(m => (m*100).toFixed(1) + '%');
+      const ths = [...thsBase, ...tierLabels.map(l => `代理商售价(${l})`), '提货价', '平台利润', '月利润(5%,万)'];
+      const trs = EXT_FUEL_TIERS.map(t => {
+        const isCurrent = t.name === extCurrentTier;
+        const d = isCurrent ? params.discount : t.discount;
+        const gc = isCurrent ? params.cpCost : t.gaodeCost;
+        const costRate = d > 0 ? (gc / d * 100).toFixed(0) + '%' : '-';
         const tierPrices = EXT_PROFIT_TIERS.map(m => {
           const r = extCalcAgent(d, gc, params, m);
           return r.agentSellPrice.toFixed(2);
@@ -1587,18 +1625,18 @@ function extRenderMatrix(params) {
         const platProfit = buyPrice - gc;
         const r5 = extCalcAgent(d, gc, params, 0.05);
         const monthly5 = r5.agentProfit * params.volume - params.fixed;
-        cells.push(
+        const cells = [t.name, d, gc.toFixed(2), costRate,
           ...tierPrices,
           buyPrice.toFixed(1),
           `<span class="${platProfit >= 0 ? 'cell-pos' : 'cell-neg'}">${platProfit.toFixed(2)}</span>`,
           `<span class="${monthly5 >= 0 ? 'cell-pos' : 'cell-neg'}">${(monthly5/10000).toFixed(2)}</span>`
-        );
-      }
-      const cls = isCurrent ? 'is-current' : '';
-      return `<tr class="${cls}">${cells.map(c => `<td>${c}</td>`).join('')}</tr>`;
-    }).join('');
-    html += `<div style="margin-bottom:18px;font-weight:600;color:var(--text)">${title}</div>
-      <table class="scenario-table"><thead><tr>${ths.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${trs}</tbody></table>`;
+        ];
+        const cls = isCurrent ? 'is-current' : '';
+        return `<tr class="${cls}">${cells.map(c => `<td>${c}</td>`).join('')}</tr>`;
+      }).join('');
+      html += `<div style="margin-bottom:4px;color:var(--muted);font-size:12px">利润率阶梯测代理商售价</div>
+        <table class="scenario-table"><thead><tr>${ths.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${trs}</tbody></table>`;
+    }
   });
   wrap.innerHTML = html;
 }
