@@ -385,21 +385,6 @@
   .ext-rcard.highlight { background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%); border-color: var(--accent); }
   .ext-rcard.highlight .rc-value { color: var(--accent); }
 
-  /* 模块三：档位 chips */
-  .ext-tier-chips {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 6px;
-    margin-bottom: 16px;
-  }
-  .ext-tchip {
-    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
-    padding: 7px 6px; cursor: pointer; text-align: center; transition: all .2s;
-    box-shadow: var(--shadow-sm); user-select: none;
-  }
-  .ext-tchip:hover { border-color: var(--accent); transform: translateY(-1px); }
-  .ext-tchip.active { background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%); border-color: var(--accent); box-shadow: 0 0 0 2px #2563eb33; }
-  .ext-tchip .tc-name { font-size: 12px; font-weight: 700; }
-  .ext-tchip .tc-sub { font-size: 10px; color: var(--muted); }
-
   /* 方案测算表格 */
   .ext-scenario-wrap { overflow-x: auto; margin-bottom: 16px; }
   .ext-stbl { width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap; }
@@ -1262,7 +1247,23 @@
     <!-- 模块三：优惠券售卖方案 -->
     <div class="panel" id="ext-scenario-panel" style="margin-top:16px">
       <h3>📋 优惠券售卖方案</h3>
-      <div class="ext-tier-chips" id="ext-tier-chips"></div>
+      <div class="combo-module" style="margin-top:0;background:transparent;border:none;padding:0">
+        <div class="cm-header">
+          <div class="cm-title">组合券选择 <span class="cm-sub">添加优惠券组合，测算售卖方案</span></div>
+          <div class="combo-toolbar">
+            <select id="ext-combo-select"></select>
+            <button class="primary" id="ext-combo-add">+ 添加</button>
+            <span class="preset-label">预设：</span>
+            <button class="preset" data-ext-preset="30x2">30A × 2</button>
+            <button class="preset" data-ext-preset="30+50">30A + 50A</button>
+            <button class="preset" data-ext-preset="20x3">20A × 3</button>
+            <button class="preset" data-ext-preset="22x5">22A × 5</button>
+            <button id="ext-combo-clear">清空</button>
+          </div>
+        </div>
+        <div class="combo-items" id="ext-combo-items"></div>
+        <div class="combo-summary" id="ext-combo-summary"></div>
+      </div>
       <div id="ext-scenario-tables"></div>
     </div>
 
@@ -1467,7 +1468,119 @@ const EXT_FUEL_TIERS_13 = [
   { name: '300-25A', discount: 25, gaodeCost: 12.75 },
   { name: '300-30A', discount: 30, gaodeCost: 17.70 },
 ];
-let extCurrentTier3 = '200-22A';
+const EXT_COMBO_PRESETS = {
+  '30x2':  [{ tierIdx: 6, qty: 2 }],
+  '30+50': [{ tierIdx: 6, qty: 1 }, { tierIdx: 8, qty: 1 }],
+  '20x3':  [{ tierIdx: 0, qty: 3 }],
+  '22x5':  [{ tierIdx: 1, qty: 5 }],
+};
+
+let extComboItems = [
+  { id: 1, tierIdx: 1, qty: 1 },
+];
+let extComboNextId = 2;
+
+function extComboTotals() {
+  let totalDiscount = 0, totalCost = 0, totalQty = 0;
+  extComboItems.forEach(it => {
+    const t = EXT_FUEL_TIERS_13[it.tierIdx];
+    if (!t) return;
+    totalDiscount += t.discount * it.qty;
+    totalCost += t.gaodeCost * it.qty;
+    totalQty += it.qty;
+  });
+  return { totalDiscount, totalCost, totalQty };
+}
+
+function extAddComboItem(tierIdx, qty) {
+  extComboItems.push({ id: extComboNextId++, tierIdx, qty: qty || 1 });
+  extRenderCombo();
+  extRender();
+}
+
+function extRemoveComboItem(id) {
+  extComboItems = extComboItems.filter(it => it.id !== id);
+  extRenderCombo();
+  extRender();
+}
+
+function extSetComboQty(id, qty) {
+  const it = extComboItems.find(x => x.id === id);
+  if (it) { it.qty = Math.max(1, qty); extRenderCombo(); extRender(); }
+}
+
+function extClearCombo() {
+  extComboItems = [];
+  extRenderCombo();
+  extRender();
+}
+
+function extApplyComboPreset(key) {
+  const preset = EXT_COMBO_PRESETS[key];
+  if (!preset) return;
+  extComboItems = preset.map(p => ({ id: extComboNextId++, tierIdx: p.tierIdx, qty: p.qty }));
+  extRenderCombo();
+  extRender();
+}
+
+function extRenderCombo() {
+  // Dropdown
+  const sel = document.getElementById('ext-combo-select');
+  if (sel) {
+    sel.innerHTML = EXT_FUEL_TIERS_13.map((t, i) =>
+      `<option value="${i}">${t.name}（优惠 ${t.discount} 成本 ${t.gaodeCost}）</option>`
+    ).join('');
+  }
+  // Items
+  const wrap = document.getElementById('ext-combo-items');
+  if (!wrap) return;
+  if (extComboItems.length === 0) {
+    wrap.innerHTML = '<div class="combo-empty">请添加优惠券或选择预设方案</div>';
+  } else {
+    wrap.innerHTML = extComboItems.map(it => {
+      const t = EXT_FUEL_TIERS_13[it.tierIdx];
+      if (!t) return '';
+      return `<div class="combo-item">
+        <div class="ci-head">
+          <span class="ci-name">${t.name}</span>
+          <button class="ci-remove" data-remove="${it.id}">×</button>
+        </div>
+        <div class="ci-meta">优惠 ${t.discount} · 高德成本 ${t.gaodeCost}</div>
+        <div class="ci-qty">
+          <button data-dec="${it.id}">−</button>
+          <input type="number" value="${it.qty}" min="1" data-qty="${it.id}">
+          <button data-inc="${it.id}">+</button>
+          <span>张 / 套</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  // Summary
+  const { totalDiscount, totalCost, totalQty } = extComboTotals();
+  const sumEl = document.getElementById('ext-combo-summary');
+  if (sumEl) {
+    sumEl.innerHTML = `
+      <div class="cs-item"><div class="cs-label">组合张数</div><div class="cs-value">${totalQty}<span class="cs-unit"> 张</span></div></div>
+      <div class="cs-item"><div class="cs-label">总优惠金额</div><div class="cs-value">${totalDiscount.toFixed(1)}<span class="cs-unit"> 元</span></div></div>
+      <div class="cs-item purple"><div class="cs-label">总高德成本</div><div class="cs-value">${totalCost.toFixed(2)}<span class="cs-unit"> 元</span></div></div>
+      <div class="cs-item accent"><div class="cs-label">平均单张成本</div><div class="cs-value">${totalQty > 0 ? (totalCost / totalQty).toFixed(2) : '0.00'}<span class="cs-unit"> 元</span></div></div>
+    `;
+  }
+  // Event delegation
+  wrap.querySelectorAll('[data-remove]').forEach(b => b.addEventListener('click', () => extRemoveComboItem(+b.dataset.remove)));
+  wrap.querySelectorAll('[data-inc]').forEach(b => b.addEventListener('click', () => {
+    const it = extComboItems.find(x => x.id === +b.dataset.inc);
+    if (it) extSetComboQty(it.id, it.qty + 1);
+  }));
+  wrap.querySelectorAll('[data-dec]').forEach(b => b.addEventListener('click', () => {
+    const it = extComboItems.find(x => x.id === +b.dataset.dec);
+    if (it) extSetComboQty(it.id, it.qty - 1);
+  }));
+  wrap.querySelectorAll('[data-qty]').forEach(inp => inp.addEventListener('change', () => {
+    const v = parseInt(inp.value) || 1;
+    extSetComboQty(+inp.dataset.qty, v);
+  }));
+}
 
 function extRenderKpi(kpiEl, channel, params) {
   const discount = params.discount;
@@ -1510,12 +1623,17 @@ function extRenderKpi(kpiEl, channel, params) {
   }
 }
 
-/* 模块二：售卖结果呈现 */
+/* 模块二：售卖结果呈现（使用组合券总额） */
 function extRenderResult(params) {
   const grid = document.getElementById('ext-result-grid');
   if (!grid) return;
-  const d = extCalcDouyinDetail(params.discount, params.cpCost, params, params.sellPrice);
-  const P = params.sellPrice, V = params.volume, C = params.cpCost, D = params.discount;
+  const combo = extComboTotals();
+  const D = combo.totalDiscount, C = combo.totalCost, qty = combo.totalQty;
+  if (qty === 0) {
+    grid.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:16px;text-align:center">请先选择优惠券组合</div>';
+    return;
+  }
+  const P = params.sellPrice, V = params.volume;
   const R = params.redeem / 100;
   const redeemed = V * R;
   const expired = V * (1 - R);
@@ -1526,15 +1644,18 @@ function extRenderResult(params) {
   const darenCost = P * redeemed * (params.commission / 100);
   const adCost = P * redeemed * (params.ad / 100);
   const platCost = P * redeemed * (params.platform / 100);
-  const netProfit = d.totalProfit;
+  // 完整利润公式
+  const invoiceCost = P * (params.invoice / 100) * V;
+  const channelFee = P * (params.channelRate / 1000) * V;
+  const netProfit = couponProfit + expiredProfit + orderComm - C * redeemed - darenCost - adCost - platCost - invoiceCost - channelFee - params.fixed;
   const netMargin = gmv > 0 ? netProfit / gmv : 0;
 
   const cards = [
-    { label: 'GMV', value: `¥${fmtMoney(gmv)}`, sub: `¥${P} × ${V}`, cls: 'highlight' },
-    { label: '订单量', value: V.toLocaleString(), sub: '月销量', cls: '' },
-    { label: '券售卖利润额', value: `¥${fmtMoney(couponProfit)}`, sub: `(¥${P}−¥${C})×${redeemed.toFixed(0)}`, cls: couponProfit >= 0 ? 'pos' : 'neg' },
+    { label: 'GMV', value: `¥${fmtMoney(gmv)}`, sub: `¥${P.toFixed(2)} × ${V}`, cls: 'highlight' },
+    { label: '订单量', value: V.toLocaleString(), sub: `月销${V}套(${qty}张/套)`, cls: '' },
+    { label: '券售卖利润额', value: `¥${fmtMoney(couponProfit)}`, sub: `(¥${P.toFixed(2)}−¥${C.toFixed(2)})×${redeemed.toFixed(0)}`, cls: couponProfit >= 0 ? 'pos' : 'neg' },
     { label: '核销订单佣金额', value: `¥${fmtMoney(orderComm)}`, sub: `¥${D}×${params.orderMargin}%×${redeemed.toFixed(0)}`, cls: 'pos' },
-    { label: '过期利润', value: `¥${fmtMoney(expiredProfit)}`, sub: `¥${P}×${expired.toFixed(0)}张未核销`, cls: expired > 0 ? 'pos' : '' },
+    { label: '过期利润', value: `¥${fmtMoney(expiredProfit)}`, sub: `¥${P.toFixed(2)}×${expired.toFixed(0)}套未核销`, cls: expired > 0 ? 'pos' : '' },
     { label: '净利润', value: `¥${fmtMoney(netProfit)}`, sub: '含发票/通道费/运营成本', cls: netProfit >= 0 ? 'pos' : 'neg' },
     { label: '净利率', value: `${(netMargin * 100).toFixed(2)}%`, sub: `净利润/GMV`, cls: netMargin >= 0 ? 'pos' : 'neg' },
     { label: '达人佣金额', value: `¥${fmtMoney(darenCost)}`, sub: `核销GMV×${params.commission}%`, cls: darenCost > 0 ? 'warn' : '' },
@@ -1548,31 +1669,6 @@ function extRenderResult(params) {
       <div class="rc-sub">${c.sub}</div>
     </div>`
   ).join('');
-}
-
-/* 模块三：档位 chips */
-function extRenderTierChips() {
-  const wrap = document.getElementById('ext-tier-chips');
-  if (!wrap) return;
-  wrap.innerHTML = EXT_FUEL_TIERS_13.map(t =>
-    `<div class="ext-tchip ${t.name === extCurrentTier3 ? 'active' : ''}" data-tier="${t.name}">
-      <div class="tc-name">${t.name}</div>
-      <div class="tc-sub">优惠 ¥${t.discount} · 高德 ¥${t.gaodeCost}</div>
-    </div>`
-  ).join('');
-  wrap.querySelectorAll('.ext-tchip').forEach(el => {
-    el.addEventListener('click', () => {
-      const t = EXT_FUEL_TIERS_13.find(x => x.name === el.dataset.tier);
-      if (!t) return;
-      extCurrentTier3 = t.name;
-      extSetVal('ext.discount', t.discount);
-      extSetVal('ext.cpCost', t.gaodeCost);
-      extSetVal('ext.dy.price', t.discount);
-      extRenderTierChips();
-      extRenderResult(extBuildParams());
-      extRenderScenarioTables(extBuildParams());
-    });
-  });
 }
 
 /* 模块三：方案测算表 */
@@ -1632,9 +1728,16 @@ function extBuildScenarioTable(rows, headerLabel) {
 function extRenderScenarioTables(params) {
   const container = document.getElementById('ext-scenario-tables');
   if (!container) return;
-  const tier = EXT_FUEL_TIERS_13.find(t => t.name === extCurrentTier3);
-  if (!tier) return;
-  const D = tier.discount, C = tier.gaodeCost;
+  const combo = extComboTotals();
+  const D = combo.totalDiscount, C = combo.totalCost, qty = combo.totalQty;
+  if (qty === 0) {
+    container.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:16px;text-align:center">请先选择优惠券组合</div>';
+    return;
+  }
+  const comboName = extComboItems.map(it => {
+    const t = EXT_FUEL_TIERS_13[it.tierIdx];
+    return it.qty > 1 ? `${t.name}×${it.qty}` : t.name;
+  }).join(' + ');
 
   // 方案一：达人佣金固定5%，按净利润率测算
   const margins = [-1, 0, 0.5, 1, 2, 3, 5, 6, 8, 10, 12, 15];
@@ -1656,11 +1759,11 @@ function extRenderScenarioTables(params) {
 
   container.innerHTML = `
     <div style="font-size:13px;font-weight:600;margin:12px 0 6px;color:var(--text)">
-      方案一 · 达人佣金固定 5% <span style="color:var(--muted);font-weight:400;font-size:12px">当前档位 ${tier.name} · 优惠 ¥${D} · 高德 ¥${C}</span>
+      方案一 · 达人佣金固定 5% <span style="color:var(--muted);font-weight:400;font-size:12px">组合 ${comboName} · 优惠 ¥${D} · 高德 ¥${C.toFixed(2)}</span>
     </div>
     ${extBuildScenarioTable(rows1, '净利润率')}
     <div style="font-size:13px;font-weight:600;margin:20px 0 6px;color:var(--text)">
-      方案二 · 净利率固定 3% <span style="color:var(--muted);font-weight:400;font-size:12px">当前档位 ${tier.name} · 优惠 ¥${D} · 高德 ¥${C}</span>
+      方案二 · 净利率固定 3% <span style="color:var(--muted);font-weight:400;font-size:12px">组合 ${comboName} · 优惠 ¥${D} · 高德 ¥${C.toFixed(2)}</span>
     </div>
     ${extBuildScenarioTable(rows2, '达人佣金率')}
   `;
@@ -1698,7 +1801,20 @@ function extRender() {
 function initExternal() {
   if (extInited) { extRender(); return; }
   extInited = true;
-  extRenderTierChips();
+  extRenderCombo();
+
+  // Combo toolbar events
+  const addBtn = document.getElementById('ext-combo-add');
+  if (addBtn) addBtn.addEventListener('click', () => {
+    const sel = document.getElementById('ext-combo-select');
+    if (sel) extAddComboItem(+sel.value, 1);
+  });
+  const clearBtn = document.getElementById('ext-combo-clear');
+  if (clearBtn) clearBtn.addEventListener('click', extClearCombo);
+  document.querySelectorAll('[data-ext-preset]').forEach(btn => {
+    btn.addEventListener('click', () => extApplyComboPreset(btn.dataset.extPreset));
+  });
+
   const ids = [
     'ext.discount','ext.cpCost','ext.redeem','ext.orderMargin','ext.volume','ext.fixed',
     'ext.dy.commission','ext.dy.ad','ext.dy.platform','ext.dy.price',
@@ -1708,19 +1824,7 @@ function initExternal() {
   ids.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
-    el.addEventListener('input', () => {
-      if (id === 'ext.discount' || id === 'ext.cpCost') {
-        const d = extGetVal('ext.discount');
-        const match = EXT_FUEL_TIERS_13.find(t => Math.abs(t.discount - d) < 0.01 && Math.abs(t.gaodeCost - extGetVal('ext.cpCost')) < 0.01);
-        if (match) extCurrentTier3 = match.name;
-        else {
-          const match2 = EXT_FUEL_TIERS_13.find(t => Math.abs(t.discount - d) < 0.01);
-          if (match2) extCurrentTier3 = match2.name;
-        }
-        extRenderTierChips();
-      }
-      extRender();
-    });
+    el.addEventListener('input', extRender);
   });
   document.querySelectorAll('input[name="ext.channel"]').forEach(r => {
     r.addEventListener('change', extToggleChannel);
