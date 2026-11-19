@@ -1101,23 +1101,37 @@
       </div>
     </div>
 
-    <!-- 渠道参数 -->
-    <div id="ext-channels" style="margin-bottom:20px">
-      <!-- 抖音自运营参数（隐藏输入，保留计算逻辑） -->
-      <div id="ext-douyin-panel" style="display:none">
-        <input type="hidden" id="ext.redeem" value="70">
-        <input type="hidden" id="ext.orderMargin" value="0.5">
-        <input type="hidden" id="ext.discount" value="22">
-        <input type="hidden" id="ext.cpCost" value="11">
-        <input type="hidden" id="ext.volume" value="5400">
-        <input type="hidden" id="ext.dy.ad" value="1">
-        <input type="hidden" id="ext.dy.commission" value="0">
-        <input type="hidden" id="ext.dy.platform" value="1">
-        <input type="hidden" id="ext.dy.invoice" value="0">
-        <input type="hidden" id="ext.dy.channel" value="3">
-        <input type="hidden" id="ext.fixed" value="0">
-        <input type="hidden" id="ext.dy.price" value="22">
+    <!-- 模块一：抖音自运营参数 -->
+    <div class="panel" id="ext-module1-panel" style="margin-bottom:16px">
+      <h3>📱 抖音自运营参数</h3>
+      <div style="display:grid;grid-template-columns:1fr 1.5fr 1.5fr;gap:20px;align-items:start">
+        <div>
+          <div class="section-divider">优惠券调控</div>
+          <div class="field-group">
+            <div class="field with-suffix" data-suffix="%">
+              <label>核销率</label>
+              <input type="number" class="num-input pct" id="ext.redeem" value="70" min="0" max="100" step="0.5" autocomplete="off">
+            </div>
+            <div class="field with-suffix" data-suffix="%">
+              <label>核销订单佣金率</label>
+              <input type="number" class="num-input pct" id="ext.orderMargin" value="0.5" min="0" max="100" step="0.05" autocomplete="off">
+            </div>
+            <div class="field with-suffix" data-suffix="张">
+              <label>月销量</label>
+              <input type="number" class="num-input pct" id="ext.volume" value="5400" min="0" step="100" autocomplete="off">
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-divider">成本</div>
+          <div id="ext-cost-display" style="font-size:12px;line-height:2;color:var(--text)"></div>
+        </div>
+        <div>
+          <div class="section-divider">利润</div>
+          <div id="ext-profit-display" style="font-size:12px;line-height:2;color:var(--text)"></div>
+        </div>
       </div>
+    </div>
 
       <!-- 授权代理商参数面板 -->
       <div class="panel" id="ext-agent-panel" style="display:none">
@@ -1156,7 +1170,6 @@
           </div>
         </div>
       </div>
-    </div>
 
     <!-- 模块二：优惠券售卖结果呈现 -->
     <div class="panel" id="ext-result-panel" style="margin-top:16px">
@@ -1346,20 +1359,21 @@ function extToggleChannel() {
 }
 
 function extBuildParams() {
+  const combo = extComboTotals();
   return {
-    discount: extGetVal('ext.discount'),
-    cpCost: extGetVal('ext.cpCost'),
+    discount: combo.totalDiscount,
+    cpCost: combo.totalCost,
     redeem: extGetVal('ext.redeem'),
     orderMargin: extGetVal('ext.orderMargin'),
     volume: extGetVal('ext.volume'),
-    fixed: extGetVal('ext.fixed') * 10000,
+    fixed: 0,
     // 抖音自运营
-    commission: extGetVal('ext.dy.commission'),
-    ad: extGetVal('ext.dy.ad'),
-    platform: extGetVal('ext.dy.platform'),
-    invoice: extGetVal('ext.dy.invoice'),
-    channelRate: extGetVal('ext.dy.channel'),
-    sellPrice: extGetVal('ext.dy.price'),
+    commission: extGetVal('ext.sc.fixedComm'),
+    ad: 1,
+    platform: 1,
+    invoice: 0,
+    channelRate: 3,
+    sellPrice: 0,
     // 授权代理商
     buyRate: extGetVal('ext.ag.buyRate'),
     agAd: extGetVal('ext.ag.ad'),
@@ -1370,12 +1384,62 @@ function extUpdateHints(p) {
   const rate = p.discount > 0 ? (p.cpCost / p.discount * 100).toFixed(0) : 0;
   const hintCp = document.getElementById('ext.cpCost.hint');
   if (hintCp) hintCp.textContent = `成本率 ${rate}%`;
-  const totalRate = (p.commission + p.ad + p.platform).toFixed(1);
-  const tr = document.getElementById('ext.dy.totalRate');
-  if (tr) tr.textContent = `${totalRate}%`;
   const buyPrice = p.discount * p.buyRate / 100;
   const bp = document.getElementById('ext.ag.buyPrice');
   if (bp) bp.textContent = `${buyPrice.toFixed(1)} 元`;
+}
+
+/* 模块一：成本与利润展示 */
+function extRenderModule1(params) {
+  const costEl = document.getElementById('ext-cost-display');
+  const profitEl = document.getElementById('ext-profit-display');
+  if (!costEl || !profitEl) return;
+
+  const combo = extComboTotals();
+  const D = combo.totalDiscount, C = combo.totalCost, qty = combo.totalQty;
+  if (qty === 0) {
+    costEl.innerHTML = '<span style="color:var(--muted)">请先选择组合</span>';
+    profitEl.innerHTML = '';
+    return;
+  }
+
+  const R = params.redeem / 100;
+  const V = params.volume;
+  const redeemed = V * R;
+  const P = params.sellPrice; // 来自方案表的反推售价
+
+  // 成本展示
+  const adCost = P * redeemed * (params.ad / 100);
+  const commCost = P * redeemed * (params.commission / 100);
+  const platCost = P * redeemed * (params.platform / 100);
+  const invCost = P * (params.invoice / 100) * V;
+  const chanCost = P * (params.channelRate / 1000) * V;
+
+  costEl.innerHTML = [
+    `<div>高德成本 <b>¥${C.toFixed(2)}</b></div>`,
+    `<div>投流率 <b>${params.ad}%</b> → ¥${adCost.toFixed(2)}</div>`,
+    `<div>达人佣金率 <b>${params.commission}%</b> → ¥${commCost.toFixed(2)}</div>`,
+    `<div>平台佣金率 <b>${params.platform}%</b> → ¥${platCost.toFixed(2)}</div>`,
+    `<div>用户发票 <b>${params.invoice}%</b> → ¥${invCost.toFixed(2)}</div>`,
+    `<div>订单通道费 <b>${params.channelRate}‰</b> → ¥${chanCost.toFixed(2)}</div>`,
+    `<div>运营成本 <b>¥0</b></div>`,
+  ].join('');
+
+  // 利润展示
+  const couponProfit = (P - C) * redeemed;
+  const orderProfit = D * (params.orderMargin / 100) * redeemed;
+  const totalProfit = couponProfit + orderProfit - commCost - platCost - invCost - chanCost;
+
+  profitEl.innerHTML = [
+    `<div>售券利润 = (¥${P.toFixed(2)} − ¥${C.toFixed(2)}) × ${redeemed.toFixed(0)} = <b style="color:${couponProfit >= 0 ? 'var(--green)' : 'var(--red)'}">¥${fmtMoney(couponProfit)}</b></div>`,
+    `<div>订单利润 = ¥${D} × ${params.orderMargin}% × ${redeemed.toFixed(0)} = <b style="color:var(--green)">¥${fmtMoney(orderProfit)}</b></div>`,
+    `<div>− 达人成本 <b style="color:var(--red)">¥${fmtMoney(commCost)}</b></div>`,
+    `<div>− 平台成本 <b style="color:var(--red)">¥${fmtMoney(platCost)}</b></div>`,
+    `<div>− 用户发票 <b style="color:var(--red)">¥${fmtMoney(invCost)}</b></div>`,
+    `<div>− 通道费 <b style="color:var(--red)">¥${fmtMoney(chanCost)}</b></div>`,
+    `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);font-weight:700;font-size:13px">`,
+    `总利润 <b style="color:${totalProfit >= 0 ? 'var(--green)' : 'var(--red)'}">¥${fmtMoney(totalProfit)}</b></div>`,
+  ].join('');
 }
 
 function fmtMoney(v) {
@@ -1706,12 +1770,21 @@ function extRender() {
   const p = extBuildParams();
   extUpdateHints(p);
 
+  // 计算保本售价供模块一利润展示
+  const bep = extCalcDouyin(p.discount, p.cpCost, p, 0);
+  p.sellPrice = bep.sellPrice;
+
+  // 模块一始终显示
+  extRenderModule1(p);
+
   const ch = extGetChannel();
 
-  // 模块二 + 模块三（仅抖音自运营或双渠道时显示）
+  // 模块二 + 模块三
   const resultPanel = document.getElementById('ext-result-panel');
   const scenarioPanel = document.getElementById('ext-scenario-panel');
+  const module1Panel = document.getElementById('ext-module1-panel');
   const showDy = (ch === 'douyin' || ch === 'both');
+  if (module1Panel) module1Panel.style.display = showDy ? '' : 'none';
   if (resultPanel) resultPanel.style.display = showDy ? '' : 'none';
   if (scenarioPanel) scenarioPanel.style.display = showDy ? '' : 'none';
   if (showDy) {
@@ -1748,9 +1821,7 @@ function initExternal() {
   });
 
   const ids = [
-    'ext.discount','ext.cpCost','ext.redeem','ext.orderMargin','ext.volume','ext.fixed',
-    'ext.dy.commission','ext.dy.ad','ext.dy.platform','ext.dy.price',
-    'ext.dy.invoice','ext.dy.channel',
+    'ext.redeem','ext.orderMargin','ext.volume',
     'ext.sc.fixedComm','ext.sc.fixedMargin',
     'ext.ag.buyRate','ext.ag.ad'
   ];
