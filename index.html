@@ -319,7 +319,7 @@
 
   /* 价格档位选择器 */
   .tier-grid {
-    display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px;
     margin-bottom: 10px;
   }
   .tier-card {
@@ -835,8 +835,8 @@
         <div class="field-group-3">
           <div class="field with-suffix" data-suffix="元">
             <label>成本价</label>
-            <input type="number" class="num-input pct" id="gas.cost" value="43" min="0" step="0.1" autocomplete="off">
-            <div class="hint">如 200减50=43</div>
+            <input type="number" class="num-input pct" id="gas.cost" value="9.2" min="0" step="0.1" autocomplete="off">
+            <div class="hint">高德成本(底价)</div>
           </div>
           <div class="field with-suffix" data-suffix="%">
             <label>平台费率</label>
@@ -856,7 +856,7 @@
           </div>
           <div class="field with-suffix" data-suffix="元">
             <label>售价 / 实际定价</label>
-            <input type="number" class="num-input pct" id="gas.price" value="58.11" min="0" step="0.1" autocomplete="off">
+            <input type="number" class="num-input pct" id="gas.price" value="13.23" min="0" step="0.1" autocomplete="off">
             <div class="hint" id="gas.price.hint">公式自动填入</div>
           </div>
         </div>
@@ -865,7 +865,7 @@
         <div class="field-group">
           <div class="field with-suffix" data-suffix="元">
             <label>优惠金额</label>
-            <input type="number" class="num-input pct" id="gas.face" value="50" min="1" autocomplete="off">
+            <input type="number" class="num-input pct" id="gas.face" value="20" min="1" autocomplete="off">
             <div class="hint">如200-50券，优惠金额=50</div>
           </div>
           <div class="field with-suffix" data-suffix="张">
@@ -931,10 +931,10 @@
             </select>
             <button class="primary" id="combo-add-btn">+ 添加</button>
             <span class="preset-label">预设：</span>
-            <button class="preset" data-preset="30x2">200-30 × 2</button>
-            <button class="preset" data-preset="30+50">200-30 + 200-50</button>
-            <button class="preset" data-preset="20x3">200-20 × 3</button>
-            <button class="preset" data-preset="10x5">200-10 × 5</button>
+            <button class="preset" data-preset="30x2">200-30A × 2</button>
+            <button class="preset" data-preset="30+50">200-30A + 200-50A</button>
+            <button class="preset" data-preset="20x3">200-20A × 3</button>
+            <button class="preset" data-preset="22x5">200-22A × 5</button>
             <button id="combo-clear">清空</button>
           </div>
         </div>
@@ -2167,18 +2167,18 @@ function renderGasScenarios() {
 
 /* ============ 组合券售卖成本计算 ============ */
 const COMBO_PRESETS = {
-  '30x2':  [{ tierIdx: 4, qty: 2 }],
-  '30+50': [{ tierIdx: 4, qty: 1 }, { tierIdx: 5, qty: 1 }],
-  '20x3':  [{ tierIdx: 2, qty: 3 }],
-  '10x5':  [{ tierIdx: 1, qty: 5 }],
+  '30x2':  [{ tierIdx: 6, qty: 2 }],
+  '30+50': [{ tierIdx: 6, qty: 1 }, { tierIdx: 8, qty: 1 }],
+  '20x3':  [{ tierIdx: 0, qty: 3 }],
+  '22x5':  [{ tierIdx: 1, qty: 5 }],
 };
 // comboItems: [{ id, tierIdx, qty }]
 let comboItems = [
-  { id: 1, tierIdx: 4, qty: 1 },
-  { id: 2, tierIdx: 5, qty: 1 },
+  { id: 1, tierIdx: 6, qty: 1 },
+  { id: 2, tierIdx: 8, qty: 1 },
 ];
 let comboNextId = 3;
-let comboManualPrice = 120;
+let comboManualPrice = 65;
 
 function addComboItem(tierIdx, qty = 1) {
   if (tierIdx < 0 || tierIdx >= GAS_TIERS.length) return;
@@ -2949,15 +2949,21 @@ function resetParams() {
   location.reload();
 }
 
-/* ============ 加油券包 6 档价格档位（每档独立存储） ============ */
-/* 数据来源：优惠金额=面值(原价)，内部结算价=成本价 */
+/* ============ 加油券包 13 档价格档位（每档独立存储） ============ */
 const GAS_TIERS = [
-  { name: '200-8',  face: 8,  cost: 0.5 },
-  { name: '200-10', face: 10, cost: 2 },
-  { name: '200-20', face: 20, cost: 12 },
-  { name: '200-25', face: 25, cost: 15 },
-  { name: '200-30', face: 30, cost: 22 },
-  { name: '200-50', face: 50, cost: 43 },
+  { name: '200-20A', face: 20, cost: 9.20 },
+  { name: '200-22A', face: 22, cost: 11.00 },
+  { name: '200-24A', face: 24, cost: 10.80 },
+  { name: '200-25B', face: 25, cost: 12.75 },
+  { name: '200-26A', face: 26, cost: 13.26 },
+  { name: '200-28A', face: 28, cost: 17.64 },
+  { name: '200-30A', face: 30, cost: 18.30 },
+  { name: '200-40A', face: 40, cost: 31.60 },
+  { name: '200-50A', face: 50, cost: 40.00 },
+  { name: '300-18A', face: 18, cost: 6.84 },
+  { name: '300-22A', face: 22, cost: 11.00 },
+  { name: '300-25A', face: 25, cost: 12.75 },
+  { name: '300-30A', face: 30, cost: 17.70 },
 ];
 let activeGasTier = null; // 当前选中的档位 index，null 表示未选中任何档位
 
