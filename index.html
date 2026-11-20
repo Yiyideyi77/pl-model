@@ -1708,10 +1708,9 @@ function extRenderResult(params) {
   const cards = [
     { label: 'GMV', value: `¥${fmtMoney(gmv)}`, sub: `¥${P.toFixed(2)} × ${V}`, cls: 'highlight' },
     { label: '订单量', value: V.toLocaleString(), sub: `月销${V}套(${qty}张/套)`, cls: '' },
-    { label: '券售卖利润额', value: `¥${fmtMoney(couponProfit)}`, sub: `(¥${P.toFixed(2)}−¥${C.toFixed(2)})×${redeemed.toFixed(0)}`, cls: couponProfit >= 0 ? 'pos' : 'neg' },
+    { label: '售卖券利润（含过期收入）', value: `¥${fmtMoney(couponProfit + expiredProfit)}`, sub: `(¥${P.toFixed(2)}−¥${C.toFixed(2)})×${redeemed.toFixed(0)} + ¥${P.toFixed(2)}×${expired.toFixed(0)}未核销`, cls: (couponProfit + expiredProfit) >= 0 ? 'pos' : 'neg' },
     { label: '核销订单佣金额', value: `¥${fmtMoney(orderComm)}`, sub: `(¥${T}−¥${D})×${params.orderMargin}%×${redeemed.toFixed(0)}`, cls: 'pos' },
     { label: '服务费利润', value: `¥${fmtMoney(serviceFeeProfit)}`, sub: `¥${D}×${(sfR * 100).toFixed(1)}%×${redeemed.toFixed(0)}`, cls: serviceFeeProfit > 0 ? 'pos' : '' },
-    { label: '过期利润', value: `¥${fmtMoney(expiredProfit)}`, sub: `¥${P.toFixed(2)}×${expired.toFixed(0)}套未核销 · 不计入结算`, cls: expired > 0 ? 'pos' : '' },
     { label: '净利润（挣钱口径）', value: `¥${fmtMoney(settleProfit)}`, sub: '售卖口径 · 不含过期收入', cls: settleProfit >= 0 ? 'pos' : 'neg' },
     { label: '净利率', value: `${(settleMargin * 100).toFixed(2)}%`, sub: `净利润/GMV · 挣钱口径`, cls: settleMargin >= 0 ? 'pos' : 'neg' },
     { label: '综合净利润', value: `¥${fmtMoney(netProfit)}`, sub: '含过期收入', cls: netProfit >= 0 ? 'pos' : 'neg' },
