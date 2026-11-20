@@ -2937,6 +2937,15 @@ function saveScenario() {
     const D = combo.totalDiscount, C = combo.totalCost, qty = combo.totalQty, T = combo.totalThreshold;
     if (qty === 0) { alert('请先选择优惠券组合'); return; }
     const params = extBuildParams();
+    // 计算真实售价（与extRender逻辑一致：手动售价优先，否则用目标利润率反推）
+    const manualPrice = extGetVal('ext.sc.fixedPrice');
+    if (manualPrice > 0) {
+      params.sellPrice = manualPrice;
+    } else {
+      const targetMargin = (extGetVal('ext.sc.fixedMargin') || 3) / 100;
+      const priced = extCalcDouyin(params.discount, params.cpCost, params, targetMargin);
+      params.sellPrice = priced.sellPrice;
+    }
     const P = params.sellPrice, V = params.volume;
     const R = params.redeem / 100;
     const NR = (params.nonRefundRate || 100) / 100;
