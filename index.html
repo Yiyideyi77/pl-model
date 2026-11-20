@@ -1473,7 +1473,7 @@ function extRenderModule1(params) {
   const sfR = (params.serviceFeeRate || 0) / 100;
   const serviceFeeProfit = D * sfR * redeemed;
   const settleProfit = couponProfit + orderProfit + serviceFeeProfit - commCost - platCost - adCost - invCost - chanCost - opsCost;
-  const gmv = P * V;
+  const gmv = P * V * NR;
   const settleMargin = gmv > 0 ? settleProfit / gmv : 0;
   const totalProfit = settleProfit + expiredProfit;
 
@@ -1686,7 +1686,7 @@ function extRenderResult(params) {
   const NR = (params.nonRefundRate || 100) / 100;
   const redeemed = V * R;
   const expired = V * (1 - R);
-  const gmv = P * V;
+  const gmv = P * V * NR;
   const couponProfit = (P - C) * redeemed;
   const expiredProfit = P * expired;
   const orderBase = T - D; // 优惠后金额
@@ -1706,7 +1706,7 @@ function extRenderResult(params) {
   const netProfit = settleProfit + expiredProfit;
 
   const cards = [
-    { label: 'GMV', value: `¥${fmtMoney(gmv)}`, sub: `¥${P.toFixed(2)} × ${V}`, cls: 'highlight' },
+    { label: 'GMV', value: `¥${fmtMoney(gmv)}`, sub: `¥${P.toFixed(2)} × ${V} × ${(NR * 100).toFixed(0)}%`, cls: 'highlight' },
     { label: '订单量', value: V.toLocaleString(), sub: `月销${V}套(${qty}张/套)`, cls: '' },
     { label: '售卖券利润（含过期收入）', value: `¥${fmtMoney(couponProfit + expiredProfit)}`, sub: `(¥${P.toFixed(2)}−¥${C.toFixed(2)})×${redeemed.toFixed(0)} + ¥${P.toFixed(2)}×${expired.toFixed(0)}未核销`, cls: (couponProfit + expiredProfit) >= 0 ? 'pos' : 'neg' },
     { label: '核销订单佣金额', value: `¥${fmtMoney(orderComm)}`, sub: `(¥${T}−¥${D})×${params.orderMargin}%×${redeemed.toFixed(0)}`, cls: 'pos' },
@@ -1759,7 +1759,7 @@ function extScenarioRow(discount, gaodeCost, params, commissionOverride, marginO
   const totalCosts = darenCost + adCost + platCost + invoiceCost + channelFee + opsCost + params.fixed;
   // 挣钱口径：净利润由售卖本身达成，过期收入不计入
   const netProfit = couponProfit + orderComm + serviceFeeProfit - totalCosts;
-  const gmv = P * V;
+  const gmv = P * V * NR;
   const netMargin = gmv > 0 ? netProfit / gmv : 0;
   const totalRevenue = couponProfit + expiredProfit + orderComm;
   const totalFees = darenCost + adCost + platCost;
