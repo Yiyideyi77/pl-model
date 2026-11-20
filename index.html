@@ -2979,7 +2979,7 @@ function saveScenario() {
 
 function renderCargo() {
   const emptyMsg = '<div class="empty" style="padding:24px;text-align:center;color:var(--muted)">暂无场景，请在对应业务tab中调整参数后点击"保存当前场景"</div>';
-  const extScenarios = scenarios.filter(s => s.type === 'ext');
+  const extScenarios = scenarios.filter(s => s.type === 'ext' && s.extData);
   const chgScenarios = scenarios.filter(s => s.type === 'charge');
 
   /* ---- 商品数据汇总版 ---- */
@@ -2992,7 +2992,7 @@ function renderCargo() {
     let rows = scenarios.map(s => {
       let gasRev = 0, gasGross = 0, gasNet = 0, gasMargin = 0;
       let chgRev = 0, chgGross = 0, chgNet = 0, chgMargin = 0;
-      if (s.type === 'ext') {
+      if (s.type === 'ext' && s.extData) {
         const d = s.extData;
         gasRev = d.gmv; gasGross = d.couponProfit + d.expiredProfit + d.orderComm;
         gasNet = d.netProfit; gasMargin = d.settleMargin;
