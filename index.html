@@ -1273,22 +1273,23 @@ function extSetVal(id, v) { const el = document.getElementById(id); if (el) el.v
    通道费   = sellPrice × channelRate‰ × volume
    运营成本 = sellPrice × opsRate × volume
    总利润   = 售券利润 + 过期利润 + 订单利润 - 达人 - 平台 - 发票 - 通道费 - 运营成本
-   反推售价: P = (C×R - D×orderM×R×(1-M) + fixed/V) / (1 - R×comm - R×plat - inv - chan - ops - M)
+   反推售价: P = (C×R - D×orderM×R + fixed/V) / (1 - R×comm - R×plat - R×ad - inv - chan - ops - M)
 */
 function extCalcDouyin(discount, gaodeCost, params, targetMargin) {
   const R = params.redeem / 100;
   const orderM = params.orderMargin / 100;
   const commR = params.commission / 100;
   const platR = params.platform / 100;
+  const adR = (params.ad || 0) / 100;
   const invR = params.invoice / 100;
   const chanR = params.channelRate / 1000; // ‰ → decimal
   const opsR = (params.opsRate || 0) / 100;
   const V = params.volume || 1;
   const fixed = params.fixed;
 
-  // 反推售价（考虑过期利润 + 订单佣金仅作用于核销部分）
-  const numer = gaodeCost * R - discount * orderM * R * (1 - targetMargin) + fixed / V;
-  const denom = 1 - R * commR - R * platR - invR - chanR - opsR - targetMargin;
+  // 反推售价（考虑过期利润 + 订单佣金仅作用于核销部分 + 投流费）
+  const numer = gaodeCost * R - discount * orderM * R + fixed / V;
+  const denom = 1 - R * commR - R * platR - R * adR - invR - chanR - opsR - targetMargin;
   let sellPrice = 0;
   if (denom > 0.0001) sellPrice = numer / denom;
 
@@ -1436,14 +1437,17 @@ function extRenderModule1(params) {
 
   // 利润展示
   const couponProfit = (P - C) * redeemed;
+  const expiredProfit = P * (V - redeemed);
   const orderProfit = D * (params.orderMargin / 100) * redeemed;
-  const totalProfit = couponProfit + orderProfit - commCost - platCost - invCost - chanCost - opsCost;
+  const totalProfit = couponProfit + expiredProfit + orderProfit - commCost - platCost - adCost - invCost - chanCost - opsCost;
 
   profitEl.innerHTML = [
     `<div>售券利润 = (¥${P.toFixed(2)} − ¥${C.toFixed(2)}) × ${redeemed.toFixed(0)} = <b style="color:${couponProfit >= 0 ? 'var(--green)' : 'var(--red)'}">¥${fmtMoney(couponProfit)}</b></div>`,
+    `<div>过期利润 = ¥${P.toFixed(2)} × ${(V - redeemed).toFixed(0)} 张未核销 = <b style="color:var(--green)">¥${fmtMoney(expiredProfit)}</b></div>`,
     `<div>订单利润 = ¥${D} × ${params.orderMargin}% × ${redeemed.toFixed(0)} = <b style="color:var(--green)">¥${fmtMoney(orderProfit)}</b></div>`,
     `<div>− 达人成本 <b style="color:var(--red)">¥${fmtMoney(commCost)}</b></div>`,
     `<div>− 平台成本 <b style="color:var(--red)">¥${fmtMoney(platCost)}</b></div>`,
+    `<div>− 投流费用 <b style="color:var(--red)">¥${fmtMoney(adCost)}</b></div>`,
     `<div>− 用户发票 <b style="color:var(--red)">¥${fmtMoney(invCost)}</b></div>`,
     `<div>− 通道费 <b style="color:var(--red)">¥${fmtMoney(chanCost)}</b></div>`,
     `<div>− 运营成本 <b style="color:var(--red)">¥${fmtMoney(opsCost)}</b></div>`,
@@ -1652,7 +1656,7 @@ function extRenderResult(params) {
   const invoiceCost = P * (params.invoice / 100) * V;
   const channelFee = P * (params.channelRate / 1000) * V;
   const opsCost = P * ((params.opsRate || 0) / 100) * V;
-  const netProfit = couponProfit + expiredProfit + orderComm - C * redeemed - darenCost - adCost - platCost - invoiceCost - channelFee - opsCost - params.fixed;
+  const netProfit = couponProfit + expiredProfit + orderComm - darenCost - adCost - platCost - invoiceCost - channelFee - opsCost - params.fixed;
   const netMargin = gmv > 0 ? netProfit / gmv : 0;
 
   const cards = [
@@ -1695,7 +1699,7 @@ function extScenarioRow(discount, gaodeCost, params, commissionOverride, marginO
   const invoiceCost = P * (params.invoice / 100) * V;
   const channelFee = P * (params.channelRate / 1000) * V;
   const opsCost = P * ((params.opsRate || 0) / 100) * V;
-  const totalCosts = gaodeCost * redeemed + darenCost + adCost + platCost + invoiceCost + channelFee + opsCost + params.fixed;
+  const totalCosts = darenCost + adCost + platCost + invoiceCost + channelFee + opsCost + params.fixed;
   const netProfit = couponProfit + expiredProfit + orderComm - totalCosts;
   const gmv = P * V;
   const totalRevenue = couponProfit + expiredProfit + orderComm;
