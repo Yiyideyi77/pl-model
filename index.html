@@ -1300,14 +1300,15 @@ function extSetVal(id, v) { const el = document.getElementById(id); if (el) el.v
    过期利润 = sellPrice × volume × (1 - redeemRate)（纯收入，不计入利润率结算）
    订单利润 = (threshold - discount) × orderMargin × 核销量
    服务费利润 = discount × serviceFeeRate × 核销量
-   达人成本 = sellPrice × 核销量 × commissionRate
-   平台成本 = sellPrice × 核销量 × platformRate
-   发票成本 = sellPrice × invoiceRate × volume
-   通道费   = sellPrice × channelRate‰ × volume
-   运营成本 = sellPrice × opsRate × volume
+   达人成本 = sellPrice × 核销量 × NR × commissionRate
+   平台成本 = sellPrice × 核销量 × NR × platformRate
+   投流费用 = sellPrice × volume × NR × adRate（基于GMV）
+   发票成本 = sellPrice × invoiceRate × volume × NR
+   通道费   = sellPrice × channelRate‰ × volume × NR
+   运营成本 = sellPrice × opsRate × volume × NR
    挣钱口径净利润 = 售券利润 + 订单利润 + 服务费利润 - 达人 - 平台 - 投流 - 发票 - 通道费 - 运营 - 固定
    反推售价（目标净利率由售卖利润达成，不用过期收入补贴，分母以核销率 R 起算）:
-   P = (C×R - (T-D)×orderM×R - D×sfR×R + fixed/V) / (R - R×comm - R×plat - R×ad - inv - chan - ops - M)
+   P = (C×R - (T-D)×orderM×R - D×sfR×R + fixed/V) / (R - R×NR×comm - R×NR×plat - NR×ad - NR×inv - NR×chan - NR×ops - M)
 */
 function extCalcDouyin(discount, gaodeCost, params, targetMargin) {
   const R = params.redeem / 100;
@@ -1327,7 +1328,7 @@ function extCalcDouyin(discount, gaodeCost, params, targetMargin) {
 
   // 反推售价：挣钱口径，达人/平台/投流/发票/通道/运营按未退款率 NR 计算
   const numer = gaodeCost * R - orderBase * orderM * R - discount * sfR * R + fixed / V;
-  const denom = R - R * NR * commR - R * NR * platR - R * NR * adR - NR * invR - NR * chanR - NR * opsR - targetMargin;
+  const denom = R - R * NR * commR - R * NR * platR - NR * adR - NR * invR - NR * chanR - NR * opsR - targetMargin;
   let sellPrice = 0;
   let clamped = false;
   if (denom > 0.0001) sellPrice = numer / denom;
@@ -1468,7 +1469,7 @@ function extRenderModule1(params) {
   const P = params.sellPrice; // 来自方案表的反推售价
 
   // 成本展示（达人/平台/投流/发票/通道/运营按未退款率 NR 计算）
-  const adCost = P * redeemed * NR * (params.ad / 100);
+  const adCost = P * V * NR * (params.ad / 100);
   const commCost = P * redeemed * NR * (params.commission / 100);
   const platCost = P * redeemed * NR * (params.platform / 100);
   const invCost = P * (params.invoice / 100) * V * NR;
@@ -1713,7 +1714,7 @@ function extRenderResult(params) {
   const sfR = (params.serviceFeeRate || 0) / 100;
   const serviceFeeProfit = D * sfR * redeemed;
   const darenCost = P * redeemed * NR * (params.commission / 100);
-  const adCost = P * redeemed * NR * (params.ad / 100);
+  const adCost = P * V * NR * (params.ad / 100);
   const platCost = P * redeemed * NR * (params.platform / 100);
   // 完整利润公式
   const invoiceCost = P * (params.invoice / 100) * V * NR;
@@ -1734,7 +1735,7 @@ function extRenderResult(params) {
     { label: '净利率', value: `${(settleMargin * 100).toFixed(2)}%`, sub: `净利润/GMV · 挣钱口径`, cls: settleMargin >= 0 ? 'pos' : 'neg' },
     { label: '综合净利润', value: `¥${fmtMoney(netProfit)}`, sub: '含过期收入', cls: netProfit >= 0 ? 'pos' : 'neg' },
     { label: '达人佣金额', value: `¥${fmtMoney(darenCost)}`, sub: `剔除退款后的售券GMV×${params.commission}%`, cls: darenCost > 0 ? 'warn' : '' },
-    { label: '投流费用', value: `¥${fmtMoney(adCost)}`, sub: `核销GMV×${params.ad}%`, cls: adCost > 0 ? 'warn' : '' },
+    { label: '投流费用', value: `¥${fmtMoney(adCost)}`, sub: `GMV×${params.ad}%`, cls: adCost > 0 ? 'warn' : '' },
     { label: '平台抽佣', value: `¥${fmtMoney(platCost)}`, sub: `剔除退款后的售券GMV×${params.platform}%`, cls: platCost > 0 ? 'warn' : '' },
   ];
   grid.innerHTML = cards.map(c =>
@@ -1770,7 +1771,7 @@ function extScenarioRow(discount, gaodeCost, params, commissionOverride, marginO
   const sfR = (params.serviceFeeRate || 0) / 100;
   const serviceFeeProfit = discount * sfR * redeemed;
   const darenCost = P * redeemed * NR * (commissionOverride / 100);
-  const adCost = P * redeemed * NR * (params.ad / 100);
+  const adCost = P * V * NR * (params.ad / 100);
   const platCost = P * redeemed * NR * (params.platform / 100);
   const invoiceCost = P * (params.invoice / 100) * V * NR;
   const channelFee = P * (params.channelRate / 1000) * V * NR;
