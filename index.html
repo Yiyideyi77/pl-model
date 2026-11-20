@@ -2994,7 +2994,7 @@ function renderCargo() {
       let chgRev = 0, chgGross = 0, chgNet = 0, chgMargin = 0;
       if (s.type === 'ext') {
         const d = s.extData;
-        gasRev = d.totalRevenue; gasGross = d.couponProfit + d.expiredProfit + d.orderComm;
+        gasRev = d.gmv; gasGross = d.couponProfit + d.expiredProfit + d.orderComm;
         gasNet = d.netProfit; gasMargin = d.settleMargin;
         tGasRev += gasRev; tGasGross += gasGross; tGasNet += gasNet; tGasSettle += d.settleProfit;
       } else if (s.type === 'charge') {
@@ -3017,7 +3017,7 @@ function renderCargo() {
     }).join('');
     sumEl.innerHTML = `<thead><tr>
       <th>场景</th>
-      <th style="text-align:right">加油收入</th><th style="text-align:right">加油毛利</th><th style="text-align:right">加油净利润</th><th style="text-align:right">加油净利率</th>
+      <th style="text-align:right">加油GMV</th><th style="text-align:right">加油综合利润</th><th style="text-align:right">加油净利润</th><th style="text-align:right">加油净利率</th>
       <th style="text-align:right">充电收入</th><th style="text-align:right">充电毛利</th><th style="text-align:right">充电净利润</th><th style="text-align:right">充电净利率</th>
       <th style="text-align:right">合计净利润</th>
     </tr></thead><tbody>${rows}
