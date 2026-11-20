@@ -1708,7 +1708,7 @@ function extRenderResult(params) {
     { label: '综合净利润', value: `¥${fmtMoney(netProfit)}`, sub: '含过期收入', cls: netProfit >= 0 ? 'pos' : 'neg' },
     { label: '达人佣金额', value: `¥${fmtMoney(darenCost)}`, sub: `剔除退款后的售券GMV×${params.commission}%`, cls: darenCost > 0 ? 'warn' : '' },
     { label: '投流费用', value: `¥${fmtMoney(adCost)}`, sub: `核销GMV×${params.ad}%`, cls: adCost > 0 ? 'warn' : '' },
-    { label: '平台抽佣', value: `¥${fmtMoney(platCost)}`, sub: `核销GMV×${params.platform}%`, cls: platCost > 0 ? 'warn' : '' },
+    { label: '平台抽佣', value: `¥${fmtMoney(platCost)}`, sub: `剔除退款后的售券GMV×${params.platform}%`, cls: platCost > 0 ? 'warn' : '' },
   ];
   grid.innerHTML = cards.map(c =>
     `<div class="ext-rcard ${c.cls}">
