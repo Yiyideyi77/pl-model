@@ -1706,7 +1706,7 @@ function extRenderResult(params) {
     { label: '净利润（挣钱口径）', value: `¥${fmtMoney(settleProfit)}`, sub: '售卖口径 · 不含过期收入', cls: settleProfit >= 0 ? 'pos' : 'neg' },
     { label: '净利率', value: `${(settleMargin * 100).toFixed(2)}%`, sub: `净利润/GMV · 挣钱口径`, cls: settleMargin >= 0 ? 'pos' : 'neg' },
     { label: '综合净利润', value: `¥${fmtMoney(netProfit)}`, sub: '含过期收入', cls: netProfit >= 0 ? 'pos' : 'neg' },
-    { label: '达人佣金额', value: `¥${fmtMoney(darenCost)}`, sub: `核销GMV×${params.commission}%`, cls: darenCost > 0 ? 'warn' : '' },
+    { label: '达人佣金额', value: `¥${fmtMoney(darenCost)}`, sub: `剔除退款后的售券GMV×${params.commission}%`, cls: darenCost > 0 ? 'warn' : '' },
     { label: '投流费用', value: `¥${fmtMoney(adCost)}`, sub: `核销GMV×${params.ad}%`, cls: adCost > 0 ? 'warn' : '' },
     { label: '平台抽佣', value: `¥${fmtMoney(platCost)}`, sub: `核销GMV×${params.platform}%`, cls: platCost > 0 ? 'warn' : '' },
   ];
