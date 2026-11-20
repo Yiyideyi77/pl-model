@@ -2925,51 +2925,96 @@ function computeAll() {
   if (document.querySelector('.tab[data-tab=cargo]').classList.contains('active')) renderCargo();
 }
 
-/* ============ 场景对比 ============ */
+/* ============ 优惠券商品货盘 ============ */
 function saveScenario() {
   const name = document.getElementById('scenarioName').value.trim() || ('场景 ' + (scenarios.length + 1));
-  const g = computeGas(), c = computeCharge();
-  scenarios.push({
-    name, time: new Date().toLocaleString('zh-CN'),
-    gas: g, charge: c
-  });
+  const time = new Date().toLocaleString('zh-CN');
+  const activeTab = document.querySelector('.tab.active').dataset.tab;
+
+  if (activeTab === 'external') {
+    // 从EXT模块捕获加油抖音的真实数据
+    const combo = extComboTotals();
+    const D = combo.totalDiscount, C = combo.totalCost, qty = combo.totalQty, T = combo.totalThreshold;
+    if (qty === 0) { alert('请先选择优惠券组合'); return; }
+    const params = extBuildParams();
+    const P = params.sellPrice, V = params.volume;
+    const R = params.redeem / 100;
+    const NR = (params.nonRefundRate || 100) / 100;
+    const redeemed = V * R;
+    const expired = V * (1 - R);
+    const gmv = P * V * NR;
+    const couponProfit = (P - C) * redeemed;
+    const expiredProfit = P * expired;
+    const orderBase = T - D;
+    const orderComm = orderBase * (params.orderMargin / 100) * redeemed;
+    const sfR = (params.serviceFeeRate || 0) / 100;
+    const serviceFeeProfit = D * sfR * redeemed;
+    const darenCost = P * redeemed * NR * (params.commission / 100);
+    const adCost = P * V * NR * (params.ad / 100);
+    const platCost = P * redeemed * NR * (params.platform / 100);
+    const invoiceCost = P * (params.invoice / 100) * V * NR;
+    const channelFee = P * (params.channelRate / 1000) * V * NR;
+    const opsCost = P * ((params.opsRate || 0) / 100) * V * NR;
+    const settleProfit = couponProfit + orderComm + serviceFeeProfit - darenCost - adCost - platCost - invoiceCost - channelFee - opsCost - params.fixed;
+    const totalRevenue = gmv + orderComm;
+    scenarios.push({
+      name, time, type: 'ext',
+      extData: { gmv, totalRevenue, couponProfit, expiredProfit, orderComm, serviceFeeProfit,
+        darenCost, adCost, platCost, invoiceCost, channelFee, opsCost, fixed: params.fixed,
+        settleProfit, netProfit: settleProfit + expiredProfit,
+        settleMargin: gmv > 0 ? settleProfit / gmv : 0 }
+    });
+  } else if (activeTab === 'charge') {
+    const c = computeCharge();
+    scenarios.push({ name, time, type: 'charge', charge: c });
+  } else {
+    alert('请在「加油抖音」或「充电抖音」tab中保存场景');
+    return;
+  }
   if (scenarios.length > 6) scenarios.shift();
   document.getElementById('scenarioName').value = '';
   renderCargo();
-  // 自动跳到货盘页
   document.querySelector('.tab[data-tab=cargo]').click();
 }
 
 function renderCargo() {
-  const emptyMsg = '<div class="empty" style="padding:24px;text-align:center;color:var(--muted)">暂无场景，请在「加油抖音」或「充电抖音」中调整参数后点击"保存当前场景"</div>';
+  const emptyMsg = '<div class="empty" style="padding:24px;text-align:center;color:var(--muted)">暂无场景，请在对应业务tab中调整参数后点击"保存当前场景"</div>';
+  const extScenarios = scenarios.filter(s => s.type === 'ext');
+  const chgScenarios = scenarios.filter(s => s.type === 'charge');
 
   /* ---- 商品数据汇总版 ---- */
   const sumEl = document.getElementById('cargo-summary-table');
   if (scenarios.length === 0) {
     sumEl.innerHTML = emptyMsg;
   } else {
-    let tGasRev = 0, tGasNet = 0, tGasGross = 0, tGasCoupon = 0, tGasPlat = 0, tGasAd = 0, tGasFixed = 0;
-    let tChgRev = 0, tChgNet = 0, tChgGross = 0, tChgOp = 0, tChgPlat = 0, tChgComp = 0, tChgAd = 0, tChgFixed = 0;
+    let tGasRev = 0, tGasGross = 0, tGasNet = 0, tGasSettle = 0;
+    let tChgRev = 0, tChgGross = 0, tChgNet = 0;
     let rows = scenarios.map(s => {
-      const g = s.gas, c = s.charge;
-      tGasRev += g.totalRevenue; tGasNet += g.netRevenue; tGasGross += g.grossProfit;
-      tGasCoupon += g.couponCost; tGasPlat += g.platformFee; tGasAd += g.adSpend; tGasFixed += g.fixed;
-      tChgRev += c.revenue; tChgNet += c.netRevenue; tChgGross += c.grossProfit;
-      tChgOp += c.opCost; tChgPlat += c.platformFee; tChgComp += c.compCost; tChgAd += c.adSpend; tChgFixed += c.fixed;
+      let gasRev = 0, gasGross = 0, gasNet = 0, gasMargin = 0;
+      let chgRev = 0, chgGross = 0, chgNet = 0, chgMargin = 0;
+      if (s.type === 'ext') {
+        const d = s.extData;
+        gasRev = d.totalRevenue; gasGross = d.couponProfit + d.expiredProfit + d.orderComm;
+        gasNet = d.netProfit; gasMargin = d.settleMargin;
+        tGasRev += gasRev; tGasGross += gasGross; tGasNet += gasNet; tGasSettle += d.settleProfit;
+      } else if (s.type === 'charge') {
+        const c = s.charge;
+        chgRev = c.revenue; chgGross = c.grossProfit; chgNet = c.netRevenue; chgMargin = c.netMargin;
+        tChgRev += chgRev; tChgGross += chgGross; tChgNet += chgNet;
+      }
       return `<tr>
-        <td>${s.name}</td>
-        <td style="text-align:right">${fmt(g.revenue)}</td>
-        <td style="text-align:right">${fmt(g.grossProfit)}</td>
-        <td style="text-align:right;color:${g.netRevenue>=0?'var(--green)':'var(--red)'}">${fmt(g.netRevenue)}</td>
-        <td style="text-align:right">${fmtPct(g.netMargin)}</td>
-        <td style="text-align:right">${fmt(c.revenue)}</td>
-        <td style="text-align:right">${fmt(c.grossProfit)}</td>
-        <td style="text-align:right;color:${c.netRevenue>=0?'var(--green)':'var(--red)'}">${fmt(c.netRevenue)}</td>
-        <td style="text-align:right">${fmtPct(c.netMargin)}</td>
-        <td style="text-align:right;font-weight:700;color:${(g.netRevenue+c.netRevenue)>=0?'var(--green)':'var(--red)'}">${fmt(g.netRevenue + c.netRevenue)}</td>
+        <td>${s.name} <span style="font-size:10px;color:var(--muted)">${s.type === 'ext' ? '加油' : '充电'}</span></td>
+        <td style="text-align:right">${gasRev ? fmt(gasRev) : '—'}</td>
+        <td style="text-align:right">${gasGross ? fmt(gasGross) : '—'}</td>
+        <td style="text-align:right;${gasNet ? 'color:' + (gasNet >= 0 ? 'var(--green)' : 'var(--red)') : ''}">${gasNet ? fmt(gasNet) : '—'}</td>
+        <td style="text-align:right">${gasRev ? fmtPct(gasMargin) : '—'}</td>
+        <td style="text-align:right">${chgRev ? fmt(chgRev) : '—'}</td>
+        <td style="text-align:right">${chgGross ? fmt(chgGross) : '—'}</td>
+        <td style="text-align:right;${chgNet ? 'color:' + (chgNet >= 0 ? 'var(--green)' : 'var(--red)') : ''}">${chgNet ? fmt(chgNet) : '—'}</td>
+        <td style="text-align:right">${chgRev ? fmtPct(chgMargin) : '—'}</td>
+        <td style="text-align:right;font-weight:700;color:${(gasNet + chgNet) >= 0 ? 'var(--green)' : 'var(--red)'}">${fmt(gasNet + chgNet)}</td>
       </tr>`;
     }).join('');
-    const n = scenarios.length;
     sumEl.innerHTML = `<thead><tr>
       <th>场景</th>
       <th style="text-align:right">加油收入</th><th style="text-align:right">加油毛利</th><th style="text-align:right">加油净利润</th><th style="text-align:right">加油净利率</th>
@@ -2978,84 +3023,97 @@ function renderCargo() {
     </tr></thead><tbody>${rows}
     <tr style="font-weight:700;border-top:2px solid var(--border);background:#f8fafc">
       <td>合计/均值</td>
-      <td style="text-align:right">${fmt(tGasRev)}</td><td style="text-align:right">${fmt(tGasGross)}</td>
-      <td style="text-align:right;color:${tGasNet>=0?'var(--green)':'var(--red)'}">${fmt(tGasNet)}</td>
-      <td style="text-align:right">${tGasRev>0?fmtPct(tGasNet/tGasRev):'—'}</td>
-      <td style="text-align:right">${fmt(tChgRev)}</td><td style="text-align:right">${fmt(tChgGross)}</td>
-      <td style="text-align:right;color:${tChgNet>=0?'var(--green)':'var(--red)'}">${fmt(tChgNet)}</td>
-      <td style="text-align:right">${tChgRev>0?fmtPct(tChgNet/tChgRev):'—'}</td>
-      <td style="text-align:right;color:${(tGasNet+tChgNet)>=0?'var(--green)':'var(--red)'}">${fmt(tGasNet + tChgNet)}</td>
+      <td style="text-align:right">${tGasRev ? fmt(tGasRev) : '—'}</td>
+      <td style="text-align:right">${tGasGross ? fmt(tGasGross) : '—'}</td>
+      <td style="text-align:right;${tGasNet ? 'color:' + (tGasNet >= 0 ? 'var(--green)' : 'var(--red)') : ''}">${tGasNet ? fmt(tGasNet) : '—'}</td>
+      <td style="text-align:right">${tGasRev > 0 ? fmtPct(tGasSettle / tGasRev) : '—'}</td>
+      <td style="text-align:right">${tChgRev ? fmt(tChgRev) : '—'}</td>
+      <td style="text-align:right">${tChgGross ? fmt(tChgGross) : '—'}</td>
+      <td style="text-align:right;${tChgNet ? 'color:' + (tChgNet >= 0 ? 'var(--green)' : 'var(--red)') : ''}">${tChgNet ? fmt(tChgNet) : '—'}</td>
+      <td style="text-align:right">${tChgRev > 0 ? fmtPct(tChgNet / tChgRev) : '—'}</td>
+      <td style="text-align:right;color:${(tGasNet + tChgNet) >= 0 ? 'var(--green)' : 'var(--red)'}">${fmt(tGasNet + tChgNet)}</td>
     </tr></tbody>`;
   }
 
-  /* ---- 空态快捷展示 ---- */
+  /* ---- 模块一：加油（仅展示 type=ext 的场景） ---- */
   const gasCardsEl = document.getElementById('cargo-gas-cards');
-  const chgCardsEl = document.getElementById('cargo-chg-cards');
-  if (scenarios.length === 0) {
-    gasCardsEl.innerHTML = emptyMsg;
-    chgCardsEl.innerHTML = emptyMsg;
-    ['cmp-gas-profit','cmp-gas-margin','cmp-chg-profit','cmp-chg-margin'].forEach(id => {
-      if (charts[id]) { charts[id].destroy(); charts[id] = null; }
-    });
-    return;
+  if (extScenarios.length === 0) {
+    gasCardsEl.innerHTML = '<div class="empty" style="padding:20px;text-align:center;color:var(--muted)">暂无加油场景</div>';
+    ['cmp-gas-profit','cmp-gas-margin'].forEach(id => { if (charts[id]) { charts[id].destroy(); charts[id] = null; } });
+  } else {
+    gasCardsEl.innerHTML = extScenarios.map((s, idx) => {
+      const i = scenarios.indexOf(s);
+      const d = s.extData;
+      return `<div class="compare-card">
+        <button class="del" onclick="scenarios.splice(${i},1);renderCargo()">×</button>
+        <div class="sc-name">${s.name} <span style="color:var(--muted);font-size:11px;font-weight:400">${s.time}</span></div>
+        <div class="sc-row"><span class="k">GMV</span><span class="v">${fmt(d.gmv)}</span></div>
+        <div class="sc-row"><span class="k">总收入</span><span class="v">${fmt(d.totalRevenue)}</span></div>
+        <div class="sc-row"><span class="k">售卖券利润</span><span class="v ${cls(d.couponProfit)}">${fmt(d.couponProfit)}</span></div>
+        <div class="sc-row"><span class="k">过期收入</span><span class="v">${fmt(d.expiredProfit)}</span></div>
+        <div class="sc-row"><span class="k">订单佣金</span><span class="v ${cls(d.orderComm)}">${fmt(d.orderComm)}</span></div>
+        <div class="sc-row"><span class="k">服务费利润</span><span class="v ${cls(d.serviceFeeProfit)}">${fmt(d.serviceFeeProfit)}</span></div>
+        <div class="sc-row"><span class="k">达人佣金</span><span class="v" style="color:var(--red)">−${fmt(d.darenCost)}</span></div>
+        <div class="sc-row"><span class="k">投流费</span><span class="v" style="color:var(--red)">−${fmt(d.adCost)}</span></div>
+        <div class="sc-row"><span class="k">平台费</span><span class="v" style="color:var(--red)">−${fmt(d.platCost)}</span></div>
+        <div class="sc-row"><span class="k">发票</span><span class="v" style="color:var(--red)">−${fmt(d.invoiceCost)}</span></div>
+        <div class="sc-row"><span class="k">通道费</span><span class="v" style="color:var(--red)">−${fmt(d.channelFee)}</span></div>
+        <div class="sc-row"><span class="k">运营成本</span><span class="v" style="color:var(--red)">−${fmt(d.opsCost)}</span></div>
+        <div class="sc-row"><span class="k">固定成本</span><span class="v" style="color:var(--red)">−${fmt(d.fixed)}</span></div>
+        <div class="sc-row" style="border-top:1px solid var(--border);margin-top:6px;padding-top:8px">
+          <span class="k"><b>净利润（挣钱口径）</b></span>
+          <span class="v ${cls(d.settleProfit)}" style="font-size:15px">${fmt(d.settleProfit)}</span>
+        </div>
+        <div class="sc-row"><span class="k">净利率</span><span class="v ${cls(d.settleMargin)}">${fmtPct(d.settleMargin)}</span></div>
+        <div class="sc-row" style="border-top:1px dashed var(--border);padding-top:6px">
+          <span class="k"><b>综合净利润</b></span>
+          <span class="v ${cls(d.netProfit)}" style="font-size:14px">${fmt(d.netProfit)}</span>
+        </div>
+      </div>`;
+    }).join('');
+    const labels = extScenarios.map(s => s.name);
+    makeBar('cmp-gas-profit', labels, [
+      { label: '挣钱口径净利润', data: extScenarios.map(s => s.extData.settleProfit), backgroundColor: CHART_COLORS.orange + 'cc', borderRadius: 6 },
+      { label: '综合净利润', data: extScenarios.map(s => s.extData.netProfit), backgroundColor: CHART_COLORS.blue + '88', borderRadius: 6 },
+    ], '净利润(元)');
+    makeBar('cmp-gas-margin', labels, [
+      { label: '净利率(挣钱口径)', data: extScenarios.map(s => s.extData.settleMargin * 100), backgroundColor: CHART_COLORS.orange + 'cc', borderRadius: 6 },
+    ], '净利率(%)');
   }
 
-  /* ---- 模块一：加油 ---- */
-  gasCardsEl.innerHTML = scenarios.map((s, i) => `
-    <div class="compare-card">
-      <button class="del" onclick="scenarios.splice(${i},1);renderCargo()">×</button>
-      <div class="sc-name">${s.name} <span style="color:var(--muted);font-size:11px;font-weight:400">${s.time}</span></div>
-      <div class="sc-row"><span class="k">GMV</span><span class="v">${fmt(s.gas.gmv)}</span></div>
-      <div class="sc-row"><span class="k">总收入</span><span class="v">${fmt(s.gas.totalRevenue)}</span></div>
-      <div class="sc-row"><span class="k">售卖利润</span><span class="v ${cls(s.gas.sellingProfit)}">${fmt(s.gas.sellingProfit)}</span></div>
-      <div class="sc-row"><span class="k">订单佣金</span><span class="v">${fmt(s.gas.orderCommission)}</span></div>
-      <div class="sc-row"><span class="k">过期收入</span><span class="v">${fmt(s.gas.expiredRevenue)}</span></div>
-      <div class="sc-row"><span class="k">核销成本</span><span class="v" style="color:var(--red)">−${fmt(s.gas.couponCost)}</span></div>
-      <div class="sc-row"><span class="k">平台费</span><span class="v" style="color:var(--red)">−${fmt(s.gas.platformFee)}</span></div>
-      <div class="sc-row"><span class="k">投流费</span><span class="v" style="color:var(--red)">−${fmt(s.gas.adSpend)}</span></div>
-      <div class="sc-row"><span class="k">固定成本</span><span class="v" style="color:var(--red)">−${fmt(s.gas.fixed)}</span></div>
-      <div class="sc-row" style="border-top:1px solid var(--border);margin-top:6px;padding-top:8px">
-        <span class="k"><b>净利润</b></span>
-        <span class="v ${cls(s.gas.netRevenue)}" style="font-size:15px">${fmt(s.gas.netRevenue)}</span>
-      </div>
-      <div class="sc-row"><span class="k">净利率</span><span class="v ${cls(s.gas.netMargin)}">${fmtPct(s.gas.netMargin)}</span></div>
-      <div class="sc-row"><span class="k">盈亏平衡</span><span class="v">${s.gas.bepVolume ? Math.ceil(s.gas.bepVolume) + '张' : '—'}</span></div>
-    </div>
-  `).join('');
-
-  const labels = scenarios.map(s => s.name);
-  makeBar('cmp-gas-profit', labels, [
-    { label: '加油净利润', data: scenarios.map(s => s.gas.netRevenue), backgroundColor: CHART_COLORS.orange + 'cc', borderRadius: 6 },
-  ], '净利润(元)');
-  makeBar('cmp-gas-margin', labels, [
-    { label: '加油净利率', data: scenarios.map(s => s.gas.netMargin * 100), backgroundColor: CHART_COLORS.orange + 'cc', borderRadius: 6 },
-  ], '净利率(%)');
-
-  /* ---- 模块二：充电 ---- */
-  chgCardsEl.innerHTML = scenarios.map((s, i) => `
-    <div class="compare-card">
-      <button class="del" onclick="scenarios.splice(${i},1);renderCargo()">×</button>
-      <div class="sc-name">${s.name} <span style="color:var(--muted);font-size:11px;font-weight:400">${s.time}</span></div>
-      <div class="sc-row"><span class="k">收入</span><span class="v">${fmt(s.charge.revenue)}</span></div>
-      <div class="sc-row"><span class="k">运营成本</span><span class="v" style="color:var(--red)">−${fmt(s.charge.opCost)}</span></div>
-      <div class="sc-row"><span class="k">平台费</span><span class="v" style="color:var(--red)">−${fmt(s.charge.platformFee)}</span></div>
-      <div class="sc-row"><span class="k">达人佣金</span><span class="v" style="color:var(--red)">−${fmt(s.charge.compCost)}</span></div>
-      <div class="sc-row"><span class="k">投流费</span><span class="v" style="color:var(--red)">−${fmt(s.charge.adSpend)}</span></div>
-      <div class="sc-row"><span class="k">固定成本</span><span class="v" style="color:var(--red)">−${fmt(s.charge.fixed)}</span></div>
-      <div class="sc-row" style="border-top:1px solid var(--border);margin-top:6px;padding-top:8px">
-        <span class="k"><b>净利润</b></span>
-        <span class="v ${cls(s.charge.netRevenue)}" style="font-size:15px">${fmt(s.charge.netRevenue)}</span>
-      </div>
-      <div class="sc-row"><span class="k">净利率</span><span class="v ${cls(s.charge.netMargin)}">${fmtPct(s.charge.netMargin)}</span></div>
-    </div>
-  `).join('');
-
-  makeBar('cmp-chg-profit', labels, [
-    { label: '充电净利润', data: scenarios.map(s => s.charge.netRevenue), backgroundColor: CHART_COLORS.green + 'cc', borderRadius: 6 },
-  ], '净利润(元)');
-  makeBar('cmp-chg-margin', labels, [
-    { label: '充电净利率', data: scenarios.map(s => s.charge.netMargin * 100), backgroundColor: CHART_COLORS.green + 'cc', borderRadius: 6 },
-  ], '净利率(%)');
+  /* ---- 模块二：充电（仅展示 type=charge 的场景） ---- */
+  const chgCardsEl = document.getElementById('cargo-chg-cards');
+  if (chgScenarios.length === 0) {
+    chgCardsEl.innerHTML = '<div class="empty" style="padding:20px;text-align:center;color:var(--muted)">暂无充电场景</div>';
+    ['cmp-chg-profit','cmp-chg-margin'].forEach(id => { if (charts[id]) { charts[id].destroy(); charts[id] = null; } });
+  } else {
+    chgCardsEl.innerHTML = chgScenarios.map((s, idx) => {
+      const i = scenarios.indexOf(s);
+      const c = s.charge;
+      return `<div class="compare-card">
+        <button class="del" onclick="scenarios.splice(${i},1);renderCargo()">×</button>
+        <div class="sc-name">${s.name} <span style="color:var(--muted);font-size:11px;font-weight:400">${s.time}</span></div>
+        <div class="sc-row"><span class="k">收入</span><span class="v">${fmt(c.revenue)}</span></div>
+        <div class="sc-row"><span class="k">运营成本</span><span class="v" style="color:var(--red)">−${fmt(c.opCost)}</span></div>
+        <div class="sc-row"><span class="k">平台费</span><span class="v" style="color:var(--red)">−${fmt(c.platformFee)}</span></div>
+        <div class="sc-row"><span class="k">达人佣金</span><span class="v" style="color:var(--red)">−${fmt(c.compCost)}</span></div>
+        <div class="sc-row"><span class="k">投流费</span><span class="v" style="color:var(--red)">−${fmt(c.adSpend)}</span></div>
+        <div class="sc-row"><span class="k">固定成本</span><span class="v" style="color:var(--red)">−${fmt(c.fixed)}</span></div>
+        <div class="sc-row" style="border-top:1px solid var(--border);margin-top:6px;padding-top:8px">
+          <span class="k"><b>净利润</b></span>
+          <span class="v ${cls(c.netRevenue)}" style="font-size:15px">${fmt(c.netRevenue)}</span>
+        </div>
+        <div class="sc-row"><span class="k">净利率</span><span class="v ${cls(c.netMargin)}">${fmtPct(c.netMargin)}</span></div>
+      </div>`;
+    }).join('');
+    const labels = chgScenarios.map(s => s.name);
+    makeBar('cmp-chg-profit', labels, [
+      { label: '充电净利润', data: chgScenarios.map(s => s.charge.netRevenue), backgroundColor: CHART_COLORS.green + 'cc', borderRadius: 6 },
+    ], '净利润(元)');
+    makeBar('cmp-chg-margin', labels, [
+      { label: '充电净利率', data: chgScenarios.map(s => s.charge.netMargin * 100), backgroundColor: CHART_COLORS.green + 'cc', borderRadius: 6 },
+    ], '净利率(%)');
+  }
 }
 
 /* ============ 历史记录（内存存储） ============ */
