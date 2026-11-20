@@ -1275,7 +1275,7 @@ function extSetVal(id, v) { const el = document.getElementById(id); if (el) el.v
    核销量 = volume × redeemRate
    售券利润 = (sellPrice - gaodeCost) × 核销量
    过期利润 = sellPrice × volume × (1 - redeemRate)（纯收入，不计入利润率结算）
-   订单利润 = discount × orderMargin × 核销量
+   订单利润 = (threshold - discount) × orderMargin × 核销量
    服务费利润 = discount × serviceFeeRate × 核销量
    达人成本 = sellPrice × 核销量 × commissionRate
    平台成本 = sellPrice × 核销量 × platformRate
@@ -1284,7 +1284,7 @@ function extSetVal(id, v) { const el = document.getElementById(id); if (el) el.v
    运营成本 = sellPrice × opsRate × volume
    挣钱口径净利润 = 售券利润 + 订单利润 + 服务费利润 - 达人 - 平台 - 投流 - 发票 - 通道费 - 运营 - 固定
    反推售价（目标净利率由售卖利润达成，不用过期收入补贴，分母以核销率 R 起算）:
-   P = (C×R - D×orderM×R - D×sfR×R + fixed/V) / (R - R×comm - R×plat - R×ad - inv - chan - ops - M)
+   P = (C×R - (T-D)×orderM×R - D×sfR×R + fixed/V) / (R - R×comm - R×plat - R×ad - inv - chan - ops - M)
 */
 function extCalcDouyin(discount, gaodeCost, params, targetMargin) {
   const R = params.redeem / 100;
@@ -1298,9 +1298,11 @@ function extCalcDouyin(discount, gaodeCost, params, targetMargin) {
   const opsR = (params.opsRate || 0) / 100;
   const V = params.volume || 1;
   const fixed = params.fixed;
+  const threshold = params.threshold || 0;
+  const orderBase = threshold - discount; // 优惠后金额
 
   // 反推售价：挣钱口径，目标利润率必须由售卖本身达成
-  const numer = gaodeCost * R - discount * orderM * R - discount * sfR * R + fixed / V;
+  const numer = gaodeCost * R - orderBase * orderM * R - discount * sfR * R + fixed / V;
   const denom = R - R * commR - R * platR - R * adR - invR - chanR - opsR - targetMargin;
   let sellPrice = 0;
   let clamped = false;
@@ -1323,10 +1325,12 @@ function extCalcDouyinDetail(discount, gaodeCost, params, sellPrice) {
   const opsR = (params.opsRate || 0) / 100;
   const V = params.volume;
   const fixed = params.fixed;
+  const threshold = params.threshold || 0;
+  const orderBase = threshold - discount;
 
   const redeemed = V * R;
   const couponProfit = (sellPrice - gaodeCost) * redeemed;
-  const orderProfit = discount * orderM * redeemed;
+  const orderProfit = orderBase * orderM * redeemed;
   const serviceFeeProfit = discount * sfR * redeemed;
   const darenCost = sellPrice * redeemed * commR;
   const platCost = sellPrice * redeemed * platR;
@@ -1387,6 +1391,7 @@ function extBuildParams() {
   const combo = extComboTotals();
   return {
     discount: combo.totalDiscount,
+    threshold: combo.totalThreshold,
     cpCost: combo.totalCost,
     redeem: extGetVal('ext.redeem'),
     orderMargin: extGetVal('ext.orderMargin'),
@@ -1423,7 +1428,7 @@ function extRenderModule1(params) {
   if (!costEl || !profitEl) return;
 
   const combo = extComboTotals();
-  const D = combo.totalDiscount, C = combo.totalCost, qty = combo.totalQty;
+  const D = combo.totalDiscount, C = combo.totalCost, qty = combo.totalQty, T = combo.totalThreshold;
   if (qty === 0) {
     costEl.innerHTML = '<span style="color:var(--muted)">请先选择组合</span>';
     profitEl.innerHTML = '';
@@ -1456,7 +1461,7 @@ function extRenderModule1(params) {
   // 利润展示（挣钱口径：结算净利润由售卖本身达成，过期纯收入单独列示不计入结算）
   const couponProfit = (P - C) * redeemed;
   const expiredProfit = P * (V - redeemed);
-  const orderProfit = D * (params.orderMargin / 100) * redeemed;
+  const orderProfit = (T - D) * (params.orderMargin / 100) * redeemed;
   const sfR = (params.serviceFeeRate || 0) / 100;
   const serviceFeeProfit = D * sfR * redeemed;
   const settleProfit = couponProfit + orderProfit + serviceFeeProfit - commCost - platCost - adCost - invCost - chanCost - opsCost;
@@ -1466,7 +1471,7 @@ function extRenderModule1(params) {
 
   profitEl.innerHTML = [
     `<div>售券利润 = (¥${P.toFixed(2)} − ¥${C.toFixed(2)}) × ${redeemed.toFixed(0)} = <b style="color:${couponProfit >= 0 ? 'var(--green)' : 'var(--red)'}">¥${fmtMoney(couponProfit)}</b></div>`,
-    `<div>订单利润 = ¥${D} × ${params.orderMargin}% × ${redeemed.toFixed(0)} = <b style="color:var(--green)">¥${fmtMoney(orderProfit)}</b></div>`,
+    `<div>订单利润 = (¥${T} − ¥${D}) × ${params.orderMargin}% × ${redeemed.toFixed(0)} = <b style="color:var(--green)">¥${fmtMoney(orderProfit)}</b></div>`,
     `<div>服务费利润 = ¥${D} × ${(sfR * 100).toFixed(1)}% × ${redeemed.toFixed(0)} = <b style="color:var(--green)">¥${fmtMoney(serviceFeeProfit)}</b></div>`,
     `<div>− 达人成本 <b style="color:var(--red)">¥${fmtMoney(commCost)}</b></div>`,
     `<div>− 平台成本 <b style="color:var(--red)">¥${fmtMoney(platCost)}</b></div>`,
@@ -1488,19 +1493,19 @@ function fmtMoney(v) {
 }
 
 const EXT_FUEL_TIERS_13 = [
-  { name: '200-20A', discount: 20, gaodeCost: 9.20 },
-  { name: '200-22A', discount: 22, gaodeCost: 11.00 },
-  { name: '200-24A', discount: 24, gaodeCost: 10.80 },
-  { name: '200-25B', discount: 25, gaodeCost: 12.75 },
-  { name: '200-26A', discount: 26, gaodeCost: 13.26 },
-  { name: '200-28A', discount: 28, gaodeCost: 17.64 },
-  { name: '200-30A', discount: 30, gaodeCost: 18.30 },
-  { name: '200-40A', discount: 40, gaodeCost: 31.60 },
-  { name: '200-50A', discount: 50, gaodeCost: 40.00 },
-  { name: '300-18A', discount: 18, gaodeCost: 6.84 },
-  { name: '300-22A', discount: 22, gaodeCost: 11.00 },
-  { name: '300-25A', discount: 25, gaodeCost: 12.75 },
-  { name: '300-30A', discount: 30, gaodeCost: 17.70 },
+  { name: '200-20A', threshold: 200, discount: 20, gaodeCost: 9.20 },
+  { name: '200-22A', threshold: 200, discount: 22, gaodeCost: 11.00 },
+  { name: '200-24A', threshold: 200, discount: 24, gaodeCost: 10.80 },
+  { name: '200-25B', threshold: 200, discount: 25, gaodeCost: 12.75 },
+  { name: '200-26A', threshold: 200, discount: 26, gaodeCost: 13.26 },
+  { name: '200-28A', threshold: 200, discount: 28, gaodeCost: 17.64 },
+  { name: '200-30A', threshold: 200, discount: 30, gaodeCost: 18.30 },
+  { name: '200-40A', threshold: 200, discount: 40, gaodeCost: 31.60 },
+  { name: '200-50A', threshold: 200, discount: 50, gaodeCost: 40.00 },
+  { name: '300-18A', threshold: 300, discount: 18, gaodeCost: 6.84 },
+  { name: '300-22A', threshold: 300, discount: 22, gaodeCost: 11.00 },
+  { name: '300-25A', threshold: 300, discount: 25, gaodeCost: 12.75 },
+  { name: '300-30A', threshold: 300, discount: 30, gaodeCost: 17.70 },
 ];
 const EXT_COMBO_PRESETS = {
   '30x2':  [{ tierIdx: 6, qty: 2 }],
@@ -1515,15 +1520,16 @@ let extComboItems = [
 let extComboNextId = 2;
 
 function extComboTotals() {
-  let totalDiscount = 0, totalCost = 0, totalQty = 0;
+  let totalDiscount = 0, totalCost = 0, totalQty = 0, totalThreshold = 0;
   extComboItems.forEach(it => {
     const t = EXT_FUEL_TIERS_13[it.tierIdx];
     if (!t) return;
     totalDiscount += t.discount * it.qty;
     totalCost += t.gaodeCost * it.qty;
+    totalThreshold += t.threshold * it.qty;
     totalQty += it.qty;
   });
-  return { totalDiscount, totalCost, totalQty };
+  return { totalDiscount, totalCost, totalQty, totalThreshold };
 }
 
 function extAddComboItem(tierIdx, qty) {
@@ -1662,7 +1668,7 @@ function extRenderResult(params) {
   const grid = document.getElementById('ext-result-grid');
   if (!grid) return;
   const combo = extComboTotals();
-  const D = combo.totalDiscount, C = combo.totalCost, qty = combo.totalQty;
+  const D = combo.totalDiscount, C = combo.totalCost, qty = combo.totalQty, T = combo.totalThreshold;
   if (qty === 0) {
     grid.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:16px;text-align:center">请先选择优惠券组合</div>';
     return;
@@ -1674,7 +1680,8 @@ function extRenderResult(params) {
   const gmv = P * V;
   const couponProfit = (P - C) * redeemed;
   const expiredProfit = P * expired;
-  const orderComm = D * (params.orderMargin / 100) * redeemed;
+  const orderBase = T - D; // 优惠后金额
+  const orderComm = orderBase * (params.orderMargin / 100) * redeemed;
   const sfR = (params.serviceFeeRate || 0) / 100;
   const serviceFeeProfit = D * sfR * redeemed;
   const darenCost = P * redeemed * (params.commission / 100);
@@ -1693,7 +1700,7 @@ function extRenderResult(params) {
     { label: 'GMV', value: `¥${fmtMoney(gmv)}`, sub: `¥${P.toFixed(2)} × ${V}`, cls: 'highlight' },
     { label: '订单量', value: V.toLocaleString(), sub: `月销${V}套(${qty}张/套)`, cls: '' },
     { label: '券售卖利润额', value: `¥${fmtMoney(couponProfit)}`, sub: `(¥${P.toFixed(2)}−¥${C.toFixed(2)})×${redeemed.toFixed(0)}`, cls: couponProfit >= 0 ? 'pos' : 'neg' },
-    { label: '核销订单佣金额', value: `¥${fmtMoney(orderComm)}`, sub: `¥${D}×${params.orderMargin}%×${redeemed.toFixed(0)}`, cls: 'pos' },
+    { label: '核销订单佣金额', value: `¥${fmtMoney(orderComm)}`, sub: `(¥${T}−¥${D})×${params.orderMargin}%×${redeemed.toFixed(0)}`, cls: 'pos' },
     { label: '服务费利润', value: `¥${fmtMoney(serviceFeeProfit)}`, sub: `¥${D}×${(sfR * 100).toFixed(1)}%×${redeemed.toFixed(0)}`, cls: serviceFeeProfit > 0 ? 'pos' : '' },
     { label: '过期利润', value: `¥${fmtMoney(expiredProfit)}`, sub: `¥${P.toFixed(2)}×${expired.toFixed(0)}套未核销 · 不计入结算`, cls: expired > 0 ? 'pos' : '' },
     { label: '净利润（挣钱口径）', value: `¥${fmtMoney(settleProfit)}`, sub: '售卖口径 · 不含过期收入', cls: settleProfit >= 0 ? 'pos' : 'neg' },
@@ -1730,7 +1737,8 @@ function extScenarioRow(discount, gaodeCost, params, commissionOverride, marginO
 
   const couponProfit = (P - gaodeCost) * redeemed;
   const expiredProfit = P * expired;
-  const orderComm = discount * (params.orderMargin / 100) * redeemed;
+  const orderBase = (params.threshold || 0) - discount;
+  const orderComm = orderBase * (params.orderMargin / 100) * redeemed;
   const sfR = (params.serviceFeeRate || 0) / 100;
   const serviceFeeProfit = discount * sfR * redeemed;
   const darenCost = P * redeemed * (commissionOverride / 100);
