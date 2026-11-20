@@ -798,7 +798,7 @@
   <div class="tabs">
     <div class="tab active" data-tab="external">🎯 加油抖音</div>
     <div class="tab" data-tab="charge">🔌 充电抖音</div>
-    <div class="tab" data-tab="compare">📊 场景对比</div>
+    <div class="tab" data-tab="cargo">📦 优惠券商品货盘</div>
     <div class="tab" data-tab="s2">🗓️ S2 规划</div>
     <div class="tab" data-tab="gas">⛽ 加油券包</div>
   </div>
@@ -1061,17 +1061,36 @@
   </div>
 
 
-  <!-- ============ 场景对比 ============ -->
-  <div class="section" id="sec-compare">
+  <!-- ============ 优惠券商品货盘 ============ -->
+  <div class="section" id="sec-cargo">
+    <!-- 商品数据汇总版 -->
     <div class="panel" style="margin-bottom:16px">
-      <h3>多场景对比</h3>
-      <div class="note">在当前业务线调整参数后，点击"保存当前场景"将加入对比池；最多 6 个场景并列。</div>
-      <div class="charts" style="grid-template-columns:1fr 1fr">
-        <div class="chart-box"><div class="chart-title">净利润对比</div><canvas id="cmp-profit"></canvas></div>
-        <div class="chart-box"><div class="chart-title">毛利率 / 净利率对比</div><canvas id="cmp-margin"></canvas></div>
+      <h3>📦 商品数据汇总</h3>
+      <div class="note">汇总所有已保存场景的加油与充电数据。</div>
+      <div style="overflow-x:auto">
+        <table class="ext-stbl" id="cargo-summary-table"></table>
       </div>
     </div>
-    <div class="compare-grid" id="compare-cards"></div>
+
+    <!-- 模块一：加油 -->
+    <div class="panel" style="margin-bottom:16px">
+      <h3>⛽ 模块一【加油】</h3>
+      <div class="charts" style="grid-template-columns:1fr 1fr">
+        <div class="chart-box"><div class="chart-title">加油 · 净利润对比</div><canvas id="cmp-gas-profit"></canvas></div>
+        <div class="chart-box"><div class="chart-title">加油 · 净利率对比</div><canvas id="cmp-gas-margin"></canvas></div>
+      </div>
+      <div class="compare-grid" id="cargo-gas-cards"></div>
+    </div>
+
+    <!-- 模块二：充电 -->
+    <div class="panel" style="margin-bottom:16px">
+      <h3>🔌 模块二【充电】</h3>
+      <div class="charts" style="grid-template-columns:1fr 1fr">
+        <div class="chart-box"><div class="chart-title">充电 · 净利润对比</div><canvas id="cmp-chg-profit"></canvas></div>
+        <div class="chart-box"><div class="chart-title">充电 · 净利率对比</div><canvas id="cmp-chg-margin"></canvas></div>
+      </div>
+      <div class="compare-grid" id="cargo-chg-cards"></div>
+    </div>
   </div>
 
   <!-- ============ 历史记录 ============ -->
@@ -1260,7 +1279,7 @@ document.querySelectorAll('.tab').forEach(t => {
     document.querySelectorAll('.section').forEach(x => x.classList.remove('active'));
     t.classList.add('active');
     document.getElementById('sec-' + t.dataset.tab).classList.add('active');
-    if (t.dataset.tab === 'compare') renderCompare();
+    if (t.dataset.tab === 'cargo') renderCargo();
     if (t.dataset.tab === 'history') renderHistory();
     if (t.dataset.tab === 'external') initExternal();
   });
@@ -2902,7 +2921,7 @@ function computeAll() {
   renderGasScenarios();
   renderChgScenarios();
   renderComboModule();
-  if (document.querySelector('.tab[data-tab=compare]').classList.contains('active')) renderCompare();
+  if (document.querySelector('.tab[data-tab=cargo]').classList.contains('active')) renderCargo();
 }
 
 /* ============ 场景对比 ============ */
@@ -2915,48 +2934,127 @@ function saveScenario() {
   });
   if (scenarios.length > 6) scenarios.shift();
   document.getElementById('scenarioName').value = '';
-  renderCompare();
-  // 自动跳到对比页
-  document.querySelector('.tab[data-tab=compare]').click();
+  renderCargo();
+  // 自动跳到货盘页
+  document.querySelector('.tab[data-tab=cargo]').click();
 }
 
-function renderCompare() {
-  const cardsEl = document.getElementById('compare-cards');
+function renderCargo() {
+  const emptyMsg = '<div class="empty" style="padding:24px;text-align:center;color:var(--muted)">暂无场景，请在「加油抖音」或「充电抖音」中调整参数后点击"保存当前场景"</div>';
+
+  /* ---- 商品数据汇总版 ---- */
+  const sumEl = document.getElementById('cargo-summary-table');
   if (scenarios.length === 0) {
-    cardsEl.innerHTML = '<div class="empty">暂无场景，请调整参数后点击"保存当前场景"</div>';
+    sumEl.innerHTML = emptyMsg;
   } else {
-    cardsEl.innerHTML = scenarios.map((s, i) => `
-      <div class="compare-card">
-        <button class="del" onclick="scenarios.splice(${i},1);renderCompare()">×</button>
-        <div class="sc-name">${s.name} <span style="color:var(--muted);font-size:11px;font-weight:400">${s.time}</span></div>
-        <div class="sc-row"><span class="k"><span class="badge gas">加油</span> 净利润</span><span class="v ${cls(s.gas.netRevenue)}">${fmt(s.gas.netRevenue)}</span></div>
-        <div class="sc-row"><span class="k"><span class="badge charge">充电</span> 净利润</span><span class="v ${cls(s.charge.netRevenue)}">${fmt(s.charge.netRevenue)}</span></div>
-        <div class="sc-row" style="border-top:1px solid var(--border);margin-top:6px;padding-top:8px">
-          <span class="k"><b>合计净利润</b></span>
-          <span class="v ${cls(s.gas.netRevenue+s.charge.netRevenue)}">${fmt(s.gas.netRevenue+s.charge.netRevenue)}</span>
-        </div>
-        <div class="sc-row"><span class="k">加权净利率</span><span class="v">${fmtPct((s.gas.netRevenue+s.charge.netRevenue)/(s.gas.revenue+s.charge.revenue))}</span></div>
+    let tGasRev = 0, tGasNet = 0, tGasGross = 0, tGasCoupon = 0, tGasPlat = 0, tGasAd = 0, tGasFixed = 0;
+    let tChgRev = 0, tChgNet = 0, tChgGross = 0, tChgOp = 0, tChgPlat = 0, tChgComp = 0, tChgAd = 0, tChgFixed = 0;
+    let rows = scenarios.map(s => {
+      const g = s.gas, c = s.charge;
+      tGasRev += g.totalRevenue; tGasNet += g.netRevenue; tGasGross += g.grossProfit;
+      tGasCoupon += g.couponCost; tGasPlat += g.platformFee; tGasAd += g.adSpend; tGasFixed += g.fixed;
+      tChgRev += c.revenue; tChgNet += c.netRevenue; tChgGross += c.grossProfit;
+      tChgOp += c.opCost; tChgPlat += c.platformFee; tChgComp += c.compCost; tChgAd += c.adSpend; tChgFixed += c.fixed;
+      return `<tr>
+        <td>${s.name}</td>
+        <td style="text-align:right">${fmt(g.revenue)}</td>
+        <td style="text-align:right">${fmt(g.grossProfit)}</td>
+        <td style="text-align:right;color:${g.netRevenue>=0?'var(--green)':'var(--red)'}">${fmt(g.netRevenue)}</td>
+        <td style="text-align:right">${fmtPct(g.netMargin)}</td>
+        <td style="text-align:right">${fmt(c.revenue)}</td>
+        <td style="text-align:right">${fmt(c.grossProfit)}</td>
+        <td style="text-align:right;color:${c.netRevenue>=0?'var(--green)':'var(--red)'}">${fmt(c.netRevenue)}</td>
+        <td style="text-align:right">${fmtPct(c.netMargin)}</td>
+        <td style="text-align:right;font-weight:700;color:${(g.netRevenue+c.netRevenue)>=0?'var(--green)':'var(--red)'}">${fmt(g.netRevenue + c.netRevenue)}</td>
+      </tr>`;
+    }).join('');
+    const n = scenarios.length;
+    sumEl.innerHTML = `<thead><tr>
+      <th>场景</th>
+      <th style="text-align:right">加油收入</th><th style="text-align:right">加油毛利</th><th style="text-align:right">加油净利润</th><th style="text-align:right">加油净利率</th>
+      <th style="text-align:right">充电收入</th><th style="text-align:right">充电毛利</th><th style="text-align:right">充电净利润</th><th style="text-align:right">充电净利率</th>
+      <th style="text-align:right">合计净利润</th>
+    </tr></thead><tbody>${rows}
+    <tr style="font-weight:700;border-top:2px solid var(--border);background:#f8fafc">
+      <td>合计/均值</td>
+      <td style="text-align:right">${fmt(tGasRev)}</td><td style="text-align:right">${fmt(tGasGross)}</td>
+      <td style="text-align:right;color:${tGasNet>=0?'var(--green)':'var(--red)'}">${fmt(tGasNet)}</td>
+      <td style="text-align:right">${tGasRev>0?fmtPct(tGasNet/tGasRev):'—'}</td>
+      <td style="text-align:right">${fmt(tChgRev)}</td><td style="text-align:right">${fmt(tChgGross)}</td>
+      <td style="text-align:right;color:${tChgNet>=0?'var(--green)':'var(--red)'}">${fmt(tChgNet)}</td>
+      <td style="text-align:right">${tChgRev>0?fmtPct(tChgNet/tChgRev):'—'}</td>
+      <td style="text-align:right;color:${(tGasNet+tChgNet)>=0?'var(--green)':'var(--red)'}">${fmt(tGasNet + tChgNet)}</td>
+    </tr></tbody>`;
+  }
+
+  /* ---- 空态快捷展示 ---- */
+  const gasCardsEl = document.getElementById('cargo-gas-cards');
+  const chgCardsEl = document.getElementById('cargo-chg-cards');
+  if (scenarios.length === 0) {
+    gasCardsEl.innerHTML = emptyMsg;
+    chgCardsEl.innerHTML = emptyMsg;
+    ['cmp-gas-profit','cmp-gas-margin','cmp-chg-profit','cmp-chg-margin'].forEach(id => {
+      if (charts[id]) { charts[id].destroy(); charts[id] = null; }
+    });
+    return;
+  }
+
+  /* ---- 模块一：加油 ---- */
+  gasCardsEl.innerHTML = scenarios.map((s, i) => `
+    <div class="compare-card">
+      <button class="del" onclick="scenarios.splice(${i},1);renderCargo()">×</button>
+      <div class="sc-name">${s.name} <span style="color:var(--muted);font-size:11px;font-weight:400">${s.time}</span></div>
+      <div class="sc-row"><span class="k">GMV</span><span class="v">${fmt(s.gas.gmv)}</span></div>
+      <div class="sc-row"><span class="k">总收入</span><span class="v">${fmt(s.gas.totalRevenue)}</span></div>
+      <div class="sc-row"><span class="k">售卖利润</span><span class="v ${cls(s.gas.sellingProfit)}">${fmt(s.gas.sellingProfit)}</span></div>
+      <div class="sc-row"><span class="k">订单佣金</span><span class="v">${fmt(s.gas.orderCommission)}</span></div>
+      <div class="sc-row"><span class="k">过期收入</span><span class="v">${fmt(s.gas.expiredRevenue)}</span></div>
+      <div class="sc-row"><span class="k">核销成本</span><span class="v" style="color:var(--red)">−${fmt(s.gas.couponCost)}</span></div>
+      <div class="sc-row"><span class="k">平台费</span><span class="v" style="color:var(--red)">−${fmt(s.gas.platformFee)}</span></div>
+      <div class="sc-row"><span class="k">投流费</span><span class="v" style="color:var(--red)">−${fmt(s.gas.adSpend)}</span></div>
+      <div class="sc-row"><span class="k">固定成本</span><span class="v" style="color:var(--red)">−${fmt(s.gas.fixed)}</span></div>
+      <div class="sc-row" style="border-top:1px solid var(--border);margin-top:6px;padding-top:8px">
+        <span class="k"><b>净利润</b></span>
+        <span class="v ${cls(s.gas.netRevenue)}" style="font-size:15px">${fmt(s.gas.netRevenue)}</span>
       </div>
-    `).join('');
-  }
+      <div class="sc-row"><span class="k">净利率</span><span class="v ${cls(s.gas.netMargin)}">${fmtPct(s.gas.netMargin)}</span></div>
+      <div class="sc-row"><span class="k">盈亏平衡</span><span class="v">${s.gas.bepVolume ? Math.ceil(s.gas.bepVolume) + '张' : '—'}</span></div>
+    </div>
+  `).join('');
 
-  // 图表
-  if (scenarios.length > 0) {
-    const labels = scenarios.map(s => s.name);
-    makeBar('cmp-profit', labels, [
-      { label: '加油', data: scenarios.map(s => s.gas.netRevenue), backgroundColor: CHART_COLORS.orange + 'cc', borderRadius: 6 },
-      { label: '充电', data: scenarios.map(s => s.charge.netRevenue), backgroundColor: CHART_COLORS.green + 'cc', borderRadius: 6 },
-    ], '净利润(元)');
+  const labels = scenarios.map(s => s.name);
+  makeBar('cmp-gas-profit', labels, [
+    { label: '加油净利润', data: scenarios.map(s => s.gas.netRevenue), backgroundColor: CHART_COLORS.orange + 'cc', borderRadius: 6 },
+  ], '净利润(元)');
+  makeBar('cmp-gas-margin', labels, [
+    { label: '加油净利率', data: scenarios.map(s => s.gas.netMargin * 100), backgroundColor: CHART_COLORS.orange + 'cc', borderRadius: 6 },
+  ], '净利率(%)');
 
-    makeBar('cmp-margin', labels, [
-      { label: '加油净利率', data: scenarios.map(s => s.gas.netMargin*100), backgroundColor: CHART_COLORS.orange + 'cc', borderRadius: 6 },
-      { label: '充电净利率', data: scenarios.map(s => s.charge.netMargin*100), backgroundColor: CHART_COLORS.green + 'cc', borderRadius: 6 },
-    ], '净利率(%)');
-  } else {
-    if (charts['cmp-profit']) { charts['cmp-profit'].destroy(); charts['cmp-profit'] = null; }
-    if (charts['cmp-margin']) { charts['cmp-margin'].destroy(); charts['cmp-margin'] = null; }
-    document.getElementById('cmp-profit').parentElement.innerHTML = '<div class="chart-box"><div class="chart-title">净利润对比</div><div class="empty">暂无数据</div></div>';
-  }
+  /* ---- 模块二：充电 ---- */
+  chgCardsEl.innerHTML = scenarios.map((s, i) => `
+    <div class="compare-card">
+      <button class="del" onclick="scenarios.splice(${i},1);renderCargo()">×</button>
+      <div class="sc-name">${s.name} <span style="color:var(--muted);font-size:11px;font-weight:400">${s.time}</span></div>
+      <div class="sc-row"><span class="k">收入</span><span class="v">${fmt(s.charge.revenue)}</span></div>
+      <div class="sc-row"><span class="k">运营成本</span><span class="v" style="color:var(--red)">−${fmt(s.charge.opCost)}</span></div>
+      <div class="sc-row"><span class="k">平台费</span><span class="v" style="color:var(--red)">−${fmt(s.charge.platformFee)}</span></div>
+      <div class="sc-row"><span class="k">达人佣金</span><span class="v" style="color:var(--red)">−${fmt(s.charge.compCost)}</span></div>
+      <div class="sc-row"><span class="k">投流费</span><span class="v" style="color:var(--red)">−${fmt(s.charge.adSpend)}</span></div>
+      <div class="sc-row"><span class="k">固定成本</span><span class="v" style="color:var(--red)">−${fmt(s.charge.fixed)}</span></div>
+      <div class="sc-row" style="border-top:1px solid var(--border);margin-top:6px;padding-top:8px">
+        <span class="k"><b>净利润</b></span>
+        <span class="v ${cls(s.charge.netRevenue)}" style="font-size:15px">${fmt(s.charge.netRevenue)}</span>
+      </div>
+      <div class="sc-row"><span class="k">净利率</span><span class="v ${cls(s.charge.netMargin)}">${fmtPct(s.charge.netMargin)}</span></div>
+    </div>
+  `).join('');
+
+  makeBar('cmp-chg-profit', labels, [
+    { label: '充电净利润', data: scenarios.map(s => s.charge.netRevenue), backgroundColor: CHART_COLORS.green + 'cc', borderRadius: 6 },
+  ], '净利润(元)');
+  makeBar('cmp-chg-margin', labels, [
+    { label: '充电净利率', data: scenarios.map(s => s.charge.netMargin * 100), backgroundColor: CHART_COLORS.green + 'cc', borderRadius: 6 },
+  ], '净利率(%)');
 }
 
 /* ============ 历史记录（内存存储） ============ */
