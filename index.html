@@ -1730,14 +1730,19 @@ function extScenarioRow(discount, gaodeCost, params, commissionOverride, marginO
   const totalRevenue = couponProfit + expiredProfit + orderComm;
   const totalFees = darenCost + adCost + platCost;
 
-  return { P, gmv, orderComm, netProfit, netMargin, volume: V, gaodeTotal: gaodeCost * redeemed, platCost, darenCost, adCost, totalFees, totalRevenue, clamped };
+  const darenProfitComm = couponProfit * (commissionOverride / 100);
+
+  return { P, gmv, orderComm, netProfit, netMargin, volume: V, gaodeTotal: gaodeCost * redeemed, platCost, darenCost, darenProfitComm, couponProfit, adCost, totalFees, totalRevenue, clamped };
 }
 
-function extBuildScenarioTable(rows, headerLabel) {
+function extBuildScenarioTable(rows, headerLabel, showProfitComm) {
   const cols = ['售价', 'GMV', '订单佣金', '净利润', '销量', '核销券成本', '平台费', '达人佣金额', '投流费用', '总费用', '总收入', '净利率'];
   let html = '<div class="ext-scenario-wrap"><table class="ext-stbl"><thead><tr>';
   html += `<th>${headerLabel}</th>`;
-  cols.forEach(c => { html += `<th>${c}</th>`; });
+  cols.forEach((c, i) => {
+    if (i === 7 && showProfitComm) html += `<th title="售券利润 × 达人佣金率">佣金(按利润)</th>`;
+    html += `<th>${c}</th>`;
+  });
   html += '</tr></thead><tbody>';
   rows.forEach(r => {
     const npCls = r.netProfit >= 0 ? 'pos' : 'neg';
@@ -1752,6 +1757,10 @@ function extBuildScenarioTable(rows, headerLabel) {
     html += `<td>${r.volume.toLocaleString()}</td>`;
     html += `<td>¥${fmtMoney(r.gaodeTotal)}</td>`;
     html += `<td>¥${fmtMoney(r.platCost)}</td>`;
+    if (showProfitComm) {
+      const dpc = r.darenProfitComm ?? 0;
+      html += `<td class="${dpc >= 0 ? 'pos' : 'neg'}" title="售券利润 ¥${fmtMoney(r.couponProfit)} × 佣金率">¥${fmtMoney(dpc)}</td>`;
+    }
     html += `<td>¥${fmtMoney(r.darenCost)}</td>`;
     html += `<td>¥${fmtMoney(r.adCost)}</td>`;
     html += `<td>¥${fmtMoney(r.totalFees)}</td>`;
@@ -1836,7 +1845,7 @@ function extRenderScenarioTables(params) {
 
   container.innerHTML = `
     <div style="font-size:13px;font-weight:600;margin:12px 0 6px;color:var(--text)">${title1}</div>
-    ${extBuildScenarioTable(rows1, head1)}
+    ${extBuildScenarioTable(rows1, head1, true)}
     <div style="font-size:13px;font-weight:600;margin:20px 0 6px;color:var(--text)">${title2}</div>
     ${extBuildScenarioTable(rows2, head2)}
   `;
