@@ -1109,8 +1109,12 @@
           <div class="section-divider">优惠券调控</div>
           <div class="field-group">
             <div class="field with-suffix" data-suffix="%">
-              <label>未退款率</label>
+              <label>优惠券核销率</label>
               <input type="number" class="num-input pct" id="ext.redeem" value="70" min="0" max="100" step="0.5" autocomplete="off">
+            </div>
+            <div class="field with-suffix" data-suffix="%">
+              <label>未退款率</label>
+              <input type="number" class="num-input pct" id="ext.nonRefundRate" value="90" min="0" max="100" step="0.5" autocomplete="off">
             </div>
             <div class="field with-suffix" data-suffix="%">
               <label>核销订单佣金率</label>
@@ -1288,6 +1292,7 @@ function extSetVal(id, v) { const el = document.getElementById(id); if (el) el.v
 */
 function extCalcDouyin(discount, gaodeCost, params, targetMargin) {
   const R = params.redeem / 100;
+  const NR = (params.nonRefundRate || 100) / 100;
   const orderM = params.orderMargin / 100;
   const sfR = (params.serviceFeeRate || 0) / 100;
   const commR = params.commission / 100;
@@ -1301,9 +1306,9 @@ function extCalcDouyin(discount, gaodeCost, params, targetMargin) {
   const threshold = params.threshold || 0;
   const orderBase = threshold - discount; // 优惠后金额
 
-  // 反推售价：挣钱口径，目标利润率必须由售卖本身达成
+  // 反推售价：挣钱口径，达人/平台/投流/发票/通道/运营按未退款率 NR 计算
   const numer = gaodeCost * R - orderBase * orderM * R - discount * sfR * R + fixed / V;
-  const denom = R - R * commR - R * platR - R * adR - invR - chanR - opsR - targetMargin;
+  const denom = R - R * NR * commR - R * NR * platR - R * NR * adR - NR * invR - NR * chanR - NR * opsR - targetMargin;
   let sellPrice = 0;
   let clamped = false;
   if (denom > 0.0001) sellPrice = numer / denom;
@@ -1316,6 +1321,7 @@ function extCalcDouyin(discount, gaodeCost, params, targetMargin) {
 // 给定售价，计算月度损益明细
 function extCalcDouyinDetail(discount, gaodeCost, params, sellPrice) {
   const R = params.redeem / 100;
+  const NR = (params.nonRefundRate || 100) / 100;
   const orderM = params.orderMargin / 100;
   const sfR = (params.serviceFeeRate || 0) / 100;
   const commR = params.commission / 100;
@@ -1332,11 +1338,11 @@ function extCalcDouyinDetail(discount, gaodeCost, params, sellPrice) {
   const couponProfit = (sellPrice - gaodeCost) * redeemed;
   const orderProfit = orderBase * orderM * redeemed;
   const serviceFeeProfit = discount * sfR * redeemed;
-  const darenCost = sellPrice * redeemed * commR;
-  const platCost = sellPrice * redeemed * platR;
-  const invoiceCost = sellPrice * invR * V;
-  const channelFee = sellPrice * chanR * V;
-  const opsCost = sellPrice * opsR * V;
+  const darenCost = sellPrice * redeemed * NR * commR;
+  const platCost = sellPrice * redeemed * NR * platR;
+  const invoiceCost = sellPrice * invR * V * NR;
+  const channelFee = sellPrice * chanR * V * NR;
+  const opsCost = sellPrice * opsR * V * NR;
   const totalProfit = couponProfit + orderProfit + serviceFeeProfit - darenCost - platCost - invoiceCost - channelFee - opsCost - fixed;
   const revenue = sellPrice * V;
   const margin = revenue > 0 ? totalProfit / revenue : 0;
@@ -1394,6 +1400,7 @@ function extBuildParams() {
     threshold: combo.totalThreshold,
     cpCost: combo.totalCost,
     redeem: extGetVal('ext.redeem'),
+    nonRefundRate: extGetVal('ext.nonRefundRate'),
     orderMargin: extGetVal('ext.orderMargin'),
     volume: extGetVal('ext.volume'),
     fixed: 0,
@@ -1436,17 +1443,18 @@ function extRenderModule1(params) {
   }
 
   const R = params.redeem / 100;
+  const NR = (params.nonRefundRate || 100) / 100;
   const V = params.volume;
   const redeemed = V * R;
   const P = params.sellPrice; // 来自方案表的反推售价
 
-  // 成本展示
-  const adCost = P * redeemed * (params.ad / 100);
-  const commCost = P * redeemed * (params.commission / 100);
-  const platCost = P * redeemed * (params.platform / 100);
-  const invCost = P * (params.invoice / 100) * V;
-  const chanCost = P * (params.channelRate / 1000) * V;
-  const opsCost = P * ((params.opsRate || 0) / 100) * V;
+  // 成本展示（达人/平台/投流/发票/通道/运营按未退款率 NR 计算）
+  const adCost = P * redeemed * NR * (params.ad / 100);
+  const commCost = P * redeemed * NR * (params.commission / 100);
+  const platCost = P * redeemed * NR * (params.platform / 100);
+  const invCost = P * (params.invoice / 100) * V * NR;
+  const chanCost = P * (params.channelRate / 1000) * V * NR;
+  const opsCost = P * ((params.opsRate || 0) / 100) * V * NR;
 
   costEl.innerHTML = [
     `<div>高德成本 <b>¥${C.toFixed(2)}</b></div>`,
@@ -1675,6 +1683,7 @@ function extRenderResult(params) {
   }
   const P = params.sellPrice, V = params.volume;
   const R = params.redeem / 100;
+  const NR = (params.nonRefundRate || 100) / 100;
   const redeemed = V * R;
   const expired = V * (1 - R);
   const gmv = P * V;
@@ -1684,13 +1693,13 @@ function extRenderResult(params) {
   const orderComm = orderBase * (params.orderMargin / 100) * redeemed;
   const sfR = (params.serviceFeeRate || 0) / 100;
   const serviceFeeProfit = D * sfR * redeemed;
-  const darenCost = P * redeemed * (params.commission / 100);
-  const adCost = P * redeemed * (params.ad / 100);
-  const platCost = P * redeemed * (params.platform / 100);
+  const darenCost = P * redeemed * NR * (params.commission / 100);
+  const adCost = P * redeemed * NR * (params.ad / 100);
+  const platCost = P * redeemed * NR * (params.platform / 100);
   // 完整利润公式
-  const invoiceCost = P * (params.invoice / 100) * V;
-  const channelFee = P * (params.channelRate / 1000) * V;
-  const opsCost = P * ((params.opsRate || 0) / 100) * V;
+  const invoiceCost = P * (params.invoice / 100) * V * NR;
+  const channelFee = P * (params.channelRate / 1000) * V * NR;
+  const opsCost = P * ((params.opsRate || 0) / 100) * V * NR;
   // 挣钱口径：结算净利润由售卖本身达成（过期收入单独列示）
   const settleProfit = couponProfit + orderComm + serviceFeeProfit - darenCost - adCost - platCost - invoiceCost - channelFee - opsCost - params.fixed;
   const settleMargin = gmv > 0 ? settleProfit / gmv : 0;
@@ -1732,6 +1741,7 @@ function extScenarioRow(discount, gaodeCost, params, commissionOverride, marginO
   }
   const V = params.volume;
   const R = params.redeem / 100;
+  const NR = (params.nonRefundRate || 100) / 100;
   const redeemed = V * R;
   const expired = V * (1 - R);
 
@@ -1741,12 +1751,12 @@ function extScenarioRow(discount, gaodeCost, params, commissionOverride, marginO
   const orderComm = orderBase * (params.orderMargin / 100) * redeemed;
   const sfR = (params.serviceFeeRate || 0) / 100;
   const serviceFeeProfit = discount * sfR * redeemed;
-  const darenCost = P * redeemed * (commissionOverride / 100);
-  const adCost = P * redeemed * (params.ad / 100);
-  const platCost = P * redeemed * (params.platform / 100);
-  const invoiceCost = P * (params.invoice / 100) * V;
-  const channelFee = P * (params.channelRate / 1000) * V;
-  const opsCost = P * ((params.opsRate || 0) / 100) * V;
+  const darenCost = P * redeemed * NR * (commissionOverride / 100);
+  const adCost = P * redeemed * NR * (params.ad / 100);
+  const platCost = P * redeemed * NR * (params.platform / 100);
+  const invoiceCost = P * (params.invoice / 100) * V * NR;
+  const channelFee = P * (params.channelRate / 1000) * V * NR;
+  const opsCost = P * ((params.opsRate || 0) / 100) * V * NR;
   const totalCosts = darenCost + adCost + platCost + invoiceCost + channelFee + opsCost + params.fixed;
   // 挣钱口径：净利润由售卖本身达成，过期收入不计入
   const netProfit = couponProfit + orderComm + serviceFeeProfit - totalCosts;
@@ -1939,7 +1949,7 @@ function initExternal() {
   });
 
   const ids = [
-    'ext.redeem','ext.orderMargin','ext.volume','ext.opsRate',
+    'ext.redeem','ext.nonRefundRate','ext.orderMargin','ext.volume','ext.opsRate','ext.serviceFeeRate',
     'ext.sc.fixedComm','ext.sc.fixedMargin','ext.sc.fixedPrice',
     'ext.ag.buyRate','ext.ag.ad'
   ];
