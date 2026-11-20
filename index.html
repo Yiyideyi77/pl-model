@@ -1265,13 +1265,15 @@ function extSetVal(id, v) { const el = document.getElementById(id); if (el) el.v
 /* 抖音自运营：月度损益计算
    核销量 = volume × redeemRate
    售券利润 = (sellPrice - gaodeCost) × 核销量
+   过期利润 = sellPrice × volume × (1 - redeemRate)
    订单利润 = discount × orderMargin × 核销量
    达人成本 = sellPrice × 核销量 × commissionRate
    平台成本 = sellPrice × 核销量 × platformRate
    发票成本 = sellPrice × invoiceRate × volume
    通道费   = sellPrice × channelRate‰ × volume
-   总利润   = 售券利润 + 订单利润 - 达人 - 平台 - 发票 - 通道费 - 运营成本
-   反推售价: P = (gaodeCost×R - discount×orderMargin×R + fixed/V) / (R - R×comm - R×plat - invoice - channel - margin)
+   运营成本 = sellPrice × opsRate × volume
+   总利润   = 售券利润 + 过期利润 + 订单利润 - 达人 - 平台 - 发票 - 通道费 - 运营成本
+   反推售价: P = (C×R - D×orderM×R×(1-M) + fixed/V) / (1 - R×comm - R×plat - inv - chan - ops - M)
 */
 function extCalcDouyin(discount, gaodeCost, params, targetMargin) {
   const R = params.redeem / 100;
@@ -1284,9 +1286,9 @@ function extCalcDouyin(discount, gaodeCost, params, targetMargin) {
   const V = params.volume || 1;
   const fixed = params.fixed;
 
-  // 反推售价
-  const numer = gaodeCost * R - discount * orderM * R + fixed / V;
-  const denom = R - R * commR - R * platR - invR - chanR - opsR - targetMargin;
+  // 反推售价（考虑过期利润 + 订单佣金仅作用于核销部分）
+  const numer = gaodeCost * R - discount * orderM * R * (1 - targetMargin) + fixed / V;
+  const denom = 1 - R * commR - R * platR - invR - chanR - opsR - targetMargin;
   let sellPrice = 0;
   if (denom > 0.0001) sellPrice = numer / denom;
 
