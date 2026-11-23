@@ -1072,6 +1072,13 @@
       </div>
     </div>
 
+    <!-- 优惠券售卖结果汇总呈现 -->
+    <div class="panel" style="margin-bottom:16px">
+      <h3>📊 优惠券售卖结果汇总呈现</h3>
+      <div class="note">汇总所有加油场景的售卖结果数据。</div>
+      <div class="ext-result-grid" id="cargo-result-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;padding:8px 0"></div>
+    </div>
+
     <!-- 模块一：加油 -->
     <div class="panel" style="margin-bottom:16px">
       <h3>⛽ 模块一【加油】</h3>
@@ -3046,6 +3053,45 @@ function renderCargo() {
       <td style="text-align:right">${tChgRev > 0 ? fmtPct(tChgNet / tChgRev) : '—'}</td>
       <td style="text-align:right;color:${(tGasNet + tChgNet) >= 0 ? 'var(--green)' : 'var(--red)'}">${fmt(tGasNet + tChgNet)}</td>
     </tr></tbody>`;
+  }
+
+  /* ---- 优惠券售卖结果汇总呈现 ---- */
+  const resultGrid = document.getElementById('cargo-result-grid');
+  if (extScenarios.length === 0) {
+    resultGrid.innerHTML = '<div class="empty" style="padding:20px;text-align:center;color:var(--muted)">暂无加油场景</div>';
+  } else {
+    let tGmv = 0, tVolume = 0, tCouponProfit = 0, tExpiredProfit = 0, tOrderComm = 0;
+    let tServiceFeeProfit = 0, tSettleProfit = 0, tNetProfit = 0;
+    let tDarenCost = 0, tAdCost = 0, tPlatCost = 0;
+    extScenarios.forEach(s => {
+      const d = s.extData;
+      tGmv += d.gmv; tCouponProfit += d.couponProfit; tExpiredProfit += d.expiredProfit;
+      tOrderComm += d.orderComm; tServiceFeeProfit += d.serviceFeeProfit;
+      tSettleProfit += d.settleProfit; tNetProfit += d.netProfit;
+      tDarenCost += d.darenCost; tAdCost += d.adCost; tPlatCost += d.platCost;
+      tVolume += (d.gmv > 0 ? Math.round(d.gmv / (d.gmv / (d.settleMargin !== undefined ? 1 : 1))) : 0);
+    });
+    // 重新算volume：从extData没有直接存volume，从gmv/settleMargin反推不可靠，用汇总GMV/均价近似
+    const settleMargin = tGmv > 0 ? tSettleProfit / tGmv : 0;
+    const cards = [
+      { label: 'GMV', value: `¥${fmtMoney(tGmv)}`, sub: `共${extScenarios.length}个场景汇总`, cls: 'highlight' },
+      { label: '售卖券利润（含过期收入）', value: `¥${fmtMoney(tCouponProfit + tExpiredProfit)}`, sub: `售卖利润${fmtMoney(tCouponProfit)} + 过期${fmtMoney(tExpiredProfit)}`, cls: (tCouponProfit + tExpiredProfit) >= 0 ? 'pos' : 'neg' },
+      { label: '核销订单佣金额', value: `¥${fmtMoney(tOrderComm)}`, sub: '优惠后金额×佣金率×核销量', cls: 'pos' },
+      { label: '服务费利润', value: `¥${fmtMoney(tServiceFeeProfit)}`, sub: '优惠金额×16%×核销量', cls: tServiceFeeProfit > 0 ? 'pos' : '' },
+      { label: '净利润（挣钱口径）', value: `¥${fmtMoney(tSettleProfit)}`, sub: '售卖口径 · 不含过期收入', cls: tSettleProfit >= 0 ? 'pos' : 'neg' },
+      { label: '净利率', value: `${(settleMargin * 100).toFixed(2)}%`, sub: '净利润/GMV · 挣钱口径', cls: settleMargin >= 0 ? 'pos' : 'neg' },
+      { label: '综合净利润', value: `¥${fmtMoney(tNetProfit)}`, sub: '含过期收入', cls: tNetProfit >= 0 ? 'pos' : 'neg' },
+      { label: '达人佣金额', value: `¥${fmtMoney(tDarenCost)}`, sub: '剔除退款后的售券GMV', cls: tDarenCost > 0 ? 'warn' : '' },
+      { label: '投流费用', value: `¥${fmtMoney(tAdCost)}`, sub: 'GMV×投流率', cls: tAdCost > 0 ? 'warn' : '' },
+      { label: '平台抽佣', value: `¥${fmtMoney(tPlatCost)}`, sub: '剔除退款后的售券GMV', cls: tPlatCost > 0 ? 'warn' : '' },
+    ];
+    resultGrid.innerHTML = cards.map(c =>
+      `<div class="ext-rcard ${c.cls}">
+        <div class="rc-label">${c.label}</div>
+        <div class="rc-value">${c.value}</div>
+        <div class="rc-sub">${c.sub}</div>
+      </div>`
+    ).join('');
   }
 
   /* ---- 模块一：加油（仅展示 type=ext 的场景） ---- */
