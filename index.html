@@ -1269,7 +1269,10 @@
 <script>
 /* ============ 状态与存储 ============ */
 const STORAGE_KEY = 'pl_model_history_v1';
-const scenarios = []; // 对比场景列表
+const SCENARIO_KEY = 'pl_model_scenarios_v1';
+let scenarios; // 货盘场景列表（持久化）
+try { scenarios = JSON.parse(localStorage.getItem(SCENARIO_KEY) || '[]'); } catch(e) { scenarios = []; }
+function persistScenarios() { try { localStorage.setItem(SCENARIO_KEY, JSON.stringify(scenarios)); } catch(e) { /* ignore */ } }
 let charts = {};
 
 /* ============ Tab 切换 ============ */
@@ -2981,6 +2984,7 @@ function saveScenario() {
     return;
   }
   if (scenarios.length > 6) scenarios.shift();
+  persistScenarios();
   document.getElementById('scenarioName').value = '';
   renderCargo();
   document.querySelector('.tab[data-tab=cargo]').click();
@@ -3054,7 +3058,7 @@ function renderCargo() {
       const i = scenarios.indexOf(s);
       const d = s.extData;
       return `<div class="compare-card">
-        <button class="del" onclick="scenarios.splice(${i},1);renderCargo()">×</button>
+        <button class="del" onclick="scenarios.splice(${i},1);persistScenarios();renderCargo()">×</button>
         <div class="sc-name">${s.name} <span style="color:var(--muted);font-size:11px;font-weight:400">${s.time}</span></div>
         <div class="sc-row"><span class="k">GMV</span><span class="v">${fmt(d.gmv)}</span></div>
         <div class="sc-row"><span class="k">总收入</span><span class="v">${fmt(d.totalRevenue)}</span></div>
@@ -3100,7 +3104,7 @@ function renderCargo() {
       const i = scenarios.indexOf(s);
       const c = s.charge;
       return `<div class="compare-card">
-        <button class="del" onclick="scenarios.splice(${i},1);renderCargo()">×</button>
+        <button class="del" onclick="scenarios.splice(${i},1);persistScenarios();renderCargo()">×</button>
         <div class="sc-name">${s.name} <span style="color:var(--muted);font-size:11px;font-weight:400">${s.time}</span></div>
         <div class="sc-row"><span class="k">收入</span><span class="v">${fmt(c.revenue)}</span></div>
         <div class="sc-row"><span class="k">运营成本</span><span class="v" style="color:var(--red)">−${fmt(c.opCost)}</span></div>
