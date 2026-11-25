@@ -3014,7 +3014,7 @@ function renderCargo() {
       let chgRev = 0, chgGross = 0, chgNet = 0, chgMargin = 0;
       if (s.type === 'ext' && s.extData) {
         const d = s.extData;
-        gasRev = d.gmv; gasGross = d.couponProfit + d.expiredProfit + d.orderComm;
+        gasRev = d.gmv; gasGross = d.couponProfit + d.expiredProfit + d.orderComm + (d.serviceFeeProfit || 0);
         gasNet = d.netProfit; gasMargin = d.settleMargin;
         tGasRev += gasRev; tGasGross += gasGross; tGasNet += gasNet; tGasSettle += d.settleProfit;
       } else if (s.type === 'charge') {
